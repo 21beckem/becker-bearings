@@ -4,7 +4,7 @@ import unittest
 from interface.contracts import (
     HandInputState, LensOutput, TactileFrame, TactileState,
 )
-from interface.grip import read_grip_points
+from interface.grip_svg import read_grip_points
 
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]

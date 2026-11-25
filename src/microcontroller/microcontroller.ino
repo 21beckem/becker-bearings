@@ -6,7 +6,8 @@ Adafruit_PWMServoDriver boards[2] = {
   Adafruit_PWMServoDriver(0x40), // Board 0
   Adafruit_PWMServoDriver(0x41)  // Board 1
 };
-const uint16_t PWM_LEVELS[3] = {150, 325, 500};
+const uint16_t PWM_LEVELS[3] = {0, 87, 175};
+const uint16_t PWM_CENTER = 325;
 struct ChannelTarget {
   uint8_t board; // 0 or 1
   uint8_t pin;   // 0 to 9
@@ -49,23 +50,19 @@ const uint8_t SYNC_BYTE = 0xFF;
 uint8_t rxBuffer[5];
 uint8_t rxIndex = 0;
 bool synced = false;
+int toggle = 1;
+bool shouldToggle = false;
 
 inline void handleChannel(uint8_t ch, uint8_t val) {
   // Guard against invalid values (3) and skip redundant I2C writes
-  if (val > 2 || val == lastState[ch]) return;
+  if (val > 2) return;
   lastState[ch] = val;
 
   // Instant O(1) lookup
   uint8_t boardIdx = channelMap[ch].board;
   uint8_t pin      = channelMap[ch].pin;
 
-  Serial.print("Setting board ");
-  Serial.print(boardIdx, DEC);
-  Serial.print(" pin ");
-  Serial.print(pin, DEC);
-  Serial.print(" to PWM level ");
-  Serial.println(PWM_LEVELS[val], DEC);
-  boards[boardIdx].setPWM(pin, 0, PWM_LEVELS[val]);
+  boards[boardIdx].setPWM(pin, 0, PWM_CENTER + (PWM_LEVELS[val] * toggle));
 }
 
 bool boardPresent(uint8_t addr) {
@@ -94,6 +91,10 @@ void processSerial() {
           uint8_t val = (rxBuffer[byteIdx] >> bitShift) & 0x03;
 
           handleChannel(ch, val);
+        }
+        shouldToggle = !shouldToggle; // Toggle every other frame
+        if (shouldToggle) {
+          toggle = -toggle; // Alternate the PWM direction
         }
       }
     }

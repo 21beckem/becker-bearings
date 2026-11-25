@@ -68,6 +68,7 @@ class LensController:
         if self._active is not None:
             self._active.destroy()
             self._active = None
+        self.tactile.close()
         self.audio.close()
 
 

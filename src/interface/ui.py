@@ -21,7 +21,7 @@ except ImportError as error:
     ) from error
 
 from .contracts import HandInputState, TactileState
-from .grip import read_grip_points
+from .grip_svg import read_grip_points
 
 
 def _image_to_pixmap(image):

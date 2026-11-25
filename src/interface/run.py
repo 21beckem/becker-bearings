@@ -14,7 +14,12 @@ from compute.module.runtime import ComputeRuntime
 
 from .lens_controller import LensController
 from .lenses import DevelopmentLens
-from .tactile import KeyboardHandInput
+from .tactile import (
+    ChannelTactileOutput,
+    KeyboardHandInput,
+    MirroredTactileOutput,
+    ScreenTactileOutput,
+)
 from .ui import QApplication, ScreenShell
 from .worker import ComputeWorker
 
@@ -23,6 +28,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--camera", action="store_true", help="use the physical stereo camera")
     parser.add_argument("--recording", default="", help="recording filename or path")
+    parser.add_argument("--tactile-port", default="COM4", help="serial port for the tactile grip")
+    parser.add_argument("--tactile-interval", type=float, default=0.01,
+                        help="seconds between tactile hardware updates")
+    parser.add_argument("--screen-only", action="store_true",
+                        help="disable the physical tactile grip")
     args = parser.parse_args(argv)
 
     config = load_config()
@@ -35,7 +45,16 @@ def main(argv=None):
     feed_class = PhysicalCameraFeed if args.camera else CameraFeed
     worker = ComputeWorker(runtime, feed_class, config["camera"])
     hand_input = KeyboardHandInput()
-    controller = LensController()
+    screen_output = ScreenTactileOutput()
+    if args.screen_only:
+        tactile_output = screen_output
+    else:
+        hardware_output = ChannelTactileOutput(
+            port=args.tactile_port,
+            interval_s=args.tactile_interval,
+        )
+        tactile_output = MirroredTactileOutput(screen_output, hardware_output)
+    controller = LensController(tactile=tactile_output)
     controller.register(DevelopmentLens)
     controller.discover_directory(Path(__file__).resolve().parents[1] / "lenses")
     initial_lens = "main_menu" if controller.has_lens("main_menu") else "development"
@@ -45,6 +64,7 @@ def main(argv=None):
     window = ScreenShell(controller, worker, svg_path, hand_input)
     worker.start()
     window.show()
+    application.aboutToQuit.connect(controller.close)
     return application.exec()
 
 
