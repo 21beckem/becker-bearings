@@ -13,7 +13,9 @@ REQUIRED_PACKAGES = {
     'matplotlib': 'matplotlib',
     'open3d': 'open3d',
     'scipy': 'scipy',
-    'skimage': 'scikit-image'
+    'skimage': 'scikit-image',
+    'PySide6': 'PySide6',
+    'pyttsx3': 'pyttsx3'
 }
 
 if (sys.platform.startswith('win')):
