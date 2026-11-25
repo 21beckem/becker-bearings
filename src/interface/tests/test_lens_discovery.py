@@ -3,6 +3,7 @@ import unittest
 
 from interface.contracts import HandInputState
 from interface.lens_controller import LensController, discover_lenses
+from interface.settings_editor import SettingsLens
 from interface.tactile import ScreenTactileOutput
 
 
@@ -17,7 +18,7 @@ class LensDiscoveryTests(unittest.TestCase):
             ["finger_rays", "main_menu"],
         )
 
-    def test_main_menu_advances_once_per_button_press(self):
+    def test_main_menu_uses_slider_navigation_and_selects_on_button(self):
         class FakeAudio:
             def close(self):
                 pass
@@ -28,17 +29,75 @@ class LensDiscoveryTests(unittest.TestCase):
         controller = LensController(tactile=ScreenTactileOutput(), audio=FakeAudio())
         controller.discover_directory(ROOT / "lenses")
         controller.start("main_menu")
-        controller.update(None, HandInputState())
-        first = controller.update(None, HandInputState(button_down=True, button_pressed=True))
-        held = controller.update(None, HandInputState(button_down=True, button_pressed=True))
-        released = controller.update(None, HandInputState())
-        second = controller.update(None, HandInputState(button_down=True, button_pressed=True))
+        first = controller.update(None, HandInputState())
+        selected = controller.update(None, HandInputState(button_down=True, button_pressed=True))
         controller.close()
         self.assertEqual(first.tactile.points[0].value, 2)
-        self.assertEqual(first.speech[0].text, "Point 00 of 20")
-        self.assertEqual(held.tactile.points[0].value, 2)
-        self.assertEqual(released.tactile.points[0].value, 2)
-        self.assertEqual(second.tactile.points[1].value, 2)
+        self.assertTrue(any("Main Menu" in request.text for request in first.speech))
+        self.assertEqual(selected.tactile.points[0].value, 2)
+
+    def test_double_button_press_opens_quick_menu_for_any_lens(self):
+        class FakeAudio:
+            def close(self):
+                pass
+
+            def speak(self, *_args, **_kwargs):
+                pass
+
+        controller = LensController(tactile=ScreenTactileOutput(), audio=FakeAudio())
+        controller.discover_directory(ROOT / "lenses")
+        controller.register(SettingsLens)
+        controller.start("finger_rays")
+        controller.update(None, HandInputState(button_down=True, button_pressed=True,
+                                                timestamp_s=1.0))
+        controller.update(None, HandInputState(timestamp_s=1.1))
+        quick = controller.update(
+            None, HandInputState(button_down=True, button_pressed=True, timestamp_s=1.2)
+        )
+        self.assertEqual(quick.info_title, "Quick menu")
+        self.assertEqual(controller.active_lens.manifest.lens_id, "finger_rays")
+
+        controller.update(None, HandInputState(timestamp_s=1.3))
+        controller.update(None, HandInputState(joystick_y=1.0, timestamp_s=2.0))
+        controller.update(None, HandInputState(timestamp_s=2.1))
+        controller.update(None, HandInputState(button_down=True, button_pressed=True,
+                                                timestamp_s=2.2))
+        self.assertEqual(controller.active_lens.manifest.lens_id, "main_menu")
+
+        controller.start("finger_rays")
+        controller.update(None, HandInputState(button_down=True, button_pressed=True,
+                                                timestamp_s=3.0))
+        controller.update(None, HandInputState(timestamp_s=3.1))
+        controller.update(None, HandInputState(button_down=True, button_pressed=True,
+                                                timestamp_s=3.2))
+        controller.update(None, HandInputState(timestamp_s=3.3))
+        controller.update(None, HandInputState(joystick_y=1.0, timestamp_s=4.0))
+        controller.update(None, HandInputState(timestamp_s=4.1))
+        controller.update(None, HandInputState(joystick_y=1.0, timestamp_s=5.0))
+        controller.update(None, HandInputState(timestamp_s=5.1))
+        controller.update(None, HandInputState(button_down=True, button_pressed=True,
+                                                timestamp_s=5.2))
+        self.assertIsNotNone(controller._quick_menu_editor)
+        controller.close()
+
+    def test_entering_a_lens_announces_it(self):
+        class FakeAudio:
+            def __init__(self):
+                self.calls = []
+
+            def close(self):
+                pass
+
+            def speak(self, text, *_args, **_kwargs):
+                self.calls.append(text)
+
+        audio = FakeAudio()
+        controller = LensController(tactile=ScreenTactileOutput(), audio=audio)
+        controller.discover_directory(ROOT / "lenses")
+        controller.start("finger_rays")
+        controller.update(None, HandInputState())
+        controller.close()
+        self.assertTrue(any("Finger Rays entered" in text for text in audio.calls))
 
 
 if __name__ == "__main__":

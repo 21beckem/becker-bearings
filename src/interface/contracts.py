@@ -1,7 +1,7 @@
 """Stable contracts shared by lenses, the screen shell, and hardware adapters."""
 
 from dataclasses import dataclass, field
-from enum import IntEnum
+from enum import Enum, IntEnum
 from time import monotonic
 
 
@@ -43,11 +43,26 @@ class HandInputState:
             raise ValueError("joystick_y must be between -1 and 1")
 
 
+class SpeechCategory(str, Enum):
+    """The reason a message is spoken, used by the quiet-mode policy."""
+
+    CONTENT = "content"
+    CONTEXT = "context"
+    OPTION = "option"
+    VALUE = "value"
+    CHANGE = "change"
+    CONFIRMATION = "confirmation"
+    ERROR = "error"
+    INSTRUCTION = "instruction"
+
+
 @dataclass(frozen=True)
 class SpeechRequest:
     text: str
     interrupt: bool = False
     priority: int = 0
+    category: SpeechCategory = SpeechCategory.CONTENT
+    instruction_text: str = ""
 
 
 @dataclass(frozen=True)
@@ -71,6 +86,8 @@ class SettingSpec:
     choices: tuple[object, ...] = ()
     minimum: float | None = None
     maximum: float | None = None
+    step: float | None = None
+    choice_labels: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

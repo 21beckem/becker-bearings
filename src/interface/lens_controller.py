@@ -5,11 +5,15 @@ import inspect
 from pathlib import Path
 import re
 from dataclasses import replace
+from time import monotonic
 
 from .audio import AudioService
-from .contracts import Lens, LensOutput
-from .settings import LensContext, SettingsRegistry
+from .contracts import Lens, LensOutput, SpeechCategory, SpeechRequest
+from .settings import LensContext, SettingsRegistry, SYSTEM_SETTINGS
 from .tactile import ScreenTactileOutput
+from .menu import MenuItem, MenuNavigator
+from .settings_editor import SettingsEditor, SettingsTarget
+from .debug import debug
 
 
 class LensController:
@@ -17,11 +21,18 @@ class LensController:
         self.tactile = tactile or ScreenTactileOutput()
         self.audio = audio or AudioService()
         self.settings = settings or SettingsRegistry()
+        self.settings.register_scope("system", SYSTEM_SETTINGS)
         self._factories = {}
         self._active = None
-        self._context = LensContext(self.settings, self.audio)
+        self._context = LensContext(self.settings, self.audio, self)
         self.last_output = LensOutput()
         self._previous_button_pressed = False
+        self._last_button_press_s = None
+        self._quick_menu = None
+        self._quick_menu_lens_id = None
+        self._quick_menu_editor = None
+        self._quick_menu_notice = ()
+        self._pending_entry_speech = None
 
     @property
     def active_lens(self):
@@ -47,7 +58,17 @@ class LensController:
             self._active.destroy()
         self._active = self._factories[lens_id]()
         self.settings.register(self._active.manifest)
+        # A lens switch may happen while the selecting button is still held.
+        # Do not carry that physical state into the new lens or its shortcut.
+        self._previous_button_pressed = False
+        self._last_button_press_s = None
+        self._pending_entry_speech = SpeechRequest(
+            f"{self._active.manifest.name} entered.",
+            interrupt=True,
+            category=SpeechCategory.CONTEXT,
+        )
         self._active.start(self._context)
+        debug("lens_started lens_id=%s name=%s", lens_id, self._active.manifest.name)
 
     def update(self, snapshot, input_state):
         if self._active is None:
@@ -55,14 +76,129 @@ class LensController:
         pressed = input_state.button_pressed and not self._previous_button_pressed
         self._previous_button_pressed = input_state.button_pressed
         normalized_input = replace(input_state, button_pressed=pressed)
+        if (pressed or input_state.joystick_x or input_state.joystick_y):
+            debug(
+                "controller_input lens=%s x=%s y=%s button_pressed=%s button_down=%s",
+                self._active.manifest.lens_id,
+                input_state.joystick_x, input_state.joystick_y,
+                pressed, input_state.button_down,
+            )
+
+        if pressed:
+            now = input_state.timestamp_s or monotonic()
+            is_double = (
+                self._last_button_press_s is not None and
+                now - self._last_button_press_s <= 0.5
+            )
+            self._last_button_press_s = now
+            if is_double and self._quick_menu is None:
+                self._open_quick_menu()
+                normalized_input = replace(normalized_input, button_pressed=False)
+
+        if self._quick_menu_editor is not None:
+            output = self._quick_menu_editor.update(snapshot, normalized_input)
+            if self._quick_menu_editor is None:
+                return output
+            return self._deliver(output)
+
+        if self._quick_menu is not None:
+            result = self._quick_menu.update(normalized_input)
+            if result.selected is not None:
+                self._select_quick_menu_item(result.selected.key)
+            if self._quick_menu_notice:
+                result = replace(result, speech=result.speech + self._quick_menu_notice)
+                self._quick_menu_notice = ()
+            if self._quick_menu is not None:
+                output = self._quick_menu.output(result, header_text="Quick menu")
+            else:
+                output = self.last_output
+            return self._deliver(output)
+
         output = self._active.update(snapshot, normalized_input)
         if not isinstance(output, LensOutput):
             raise TypeError("A lens update must return LensOutput")
+        if self._pending_entry_speech is not None:
+            has_context = any(
+                request.category == SpeechCategory.CONTEXT
+                for request in output.speech
+            )
+            if not has_context:
+                output = replace(
+                    output,
+                    speech=(self._pending_entry_speech,) + output.speech,
+                )
+            self._pending_entry_speech = None
+        return self._deliver(output)
+
+    def _deliver(self, output):
         self.tactile.send(output.tactile)
         for request in output.speech:
-            self.audio.speak(request.text, request.interrupt, request.priority)
+            instructions_enabled = self.settings.get("system", "menu_instructions")
+            if (request.category == SpeechCategory.INSTRUCTION and
+                    not instructions_enabled):
+                continue
+            text = request.text
+            if request.instruction_text and instructions_enabled:
+                text = f"{text} {request.instruction_text}".strip()
+            debug(
+                "controller_speech text=%r category=%s interrupt=%s instructions_enabled=%s",
+                text, request.category, request.interrupt, instructions_enabled,
+            )
+            self.audio.speak(
+                text, request.interrupt, request.priority, request.category
+            )
         self.last_output = output
         return output
+
+    def _open_quick_menu(self):
+        self._quick_menu_lens_id = self._active.manifest.lens_id
+        self._quick_menu_editor = None
+        self._quick_menu_notice = ()
+        self._quick_menu = MenuNavigator(
+            "Quick menu",
+            (
+                MenuItem("close", "Close menu", "Return to the current lens."),
+                MenuItem("main_menu", "Main Menu", "Open the main menu."),
+                MenuItem("lens_settings", "Lens settings", "Edit settings for the current lens."),
+            ),
+            instructions=(
+                "Move the joystick to slide through quick menu options.",
+                "Press the button to select.",
+            ),
+        )
+
+    def _select_quick_menu_item(self, key):
+        if key == "close":
+            self._close_quick_menu()
+        elif key == "main_menu":
+            self._close_quick_menu()
+            self.start("main_menu")
+        elif key == "lens_settings":
+            manifest = self._active.manifest
+            if not manifest.settings:
+                self._quick_menu_notice = (SpeechRequest(
+                    "This lens has no settings.",
+                    interrupt=True, category=SpeechCategory.CONTENT,
+                ),)
+                self._quick_menu = MenuNavigator(
+                    "Quick menu",
+                    (MenuItem("close", "Close menu"),),
+                    instructions=("This lens has no settings.",),
+                )
+                return
+            target = SettingsTarget(
+                manifest.lens_id,
+                f"{manifest.name} settings",
+                self.settings,
+                on_leave=self._close_quick_menu,
+            )
+            self._quick_menu = None
+            self._quick_menu_editor = SettingsEditor(target)
+
+    def _close_quick_menu(self):
+        self._quick_menu = None
+        self._quick_menu_editor = None
+        self._quick_menu_lens_id = None
 
     def close(self):
         if self._active is not None:

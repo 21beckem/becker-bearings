@@ -13,7 +13,8 @@ from compute.module.recorded_camera_feed import CameraFeed, recording_by_name
 from compute.module.runtime import ComputeRuntime
 
 from .lens_controller import LensController
-from .lenses import DevelopmentLens
+from .settings_editor import SettingsLens
+from .debug import configure_debug_log
 from .tactile import (
     ChannelTactileOutput,
     KeyboardHandInput,
@@ -32,9 +33,14 @@ def main(argv=None):
     parser.add_argument("--tactile-interval", type=float, default=0.01,
                         help="seconds between tactile hardware updates")
     parser.add_argument("--lens", default="main_menu", help="the initial lens to load (default: main_menu)")
+    parser.add_argument("--debug-log", default="",
+                        help="write detailed input/menu/speech diagnostics to this file")
     parser.add_argument("--screen-only", action="store_true",
                         help="disable the physical tactile grip")
     args = parser.parse_args(argv)
+
+    if args.debug_log:
+        configure_debug_log(args.debug_log)
 
     config = load_config()
     if args.recording:
@@ -55,10 +61,14 @@ def main(argv=None):
             interval_s=args.tactile_interval,
         )
         tactile_output = MirroredTactileOutput(screen_output, hardware_output)
-    controller = LensController(tactile=tactile_output)
-    controller.register(DevelopmentLens)
+    settings_path = Path(__file__).resolve().parents[1] / "compute" / "settings.json"
+    from .settings import SettingsRegistry
+    controller = LensController(
+        tactile=tactile_output, settings=SettingsRegistry(settings_path)
+    )
+    controller.register(SettingsLens)
     controller.discover_directory(Path(__file__).resolve().parents[1] / "lenses")
-    initial_lens = args.lens if controller.has_lens(args.lens) else "development"
+    initial_lens = args.lens if controller.has_lens(args.lens) else "main_menu"
     controller.start(initial_lens)
 
     svg_path = Path(__file__).resolve().parents[1] / "assets" / "grip.svg"

@@ -22,6 +22,7 @@ except ImportError as error:
 
 from .contracts import HandInputState, TactileState
 from .grip_svg import read_grip_points
+from .debug import debug
 
 
 def _image_to_pixmap(image):
@@ -188,8 +189,10 @@ class ScreenShell(QMainWindow):
         elif key in (Qt.Key_Down, Qt.Key_S):
             y = 1.0
         if x or y:
+            debug("ui_key_press key=%s joystick_x=%s joystick_y=%s", key, x, y)
             self.hand_input.set_state(joystick_x=x, joystick_y=y)
         elif key in (Qt.Key_Space, Qt.Key_Return, Qt.Key_Enter):
+            debug("ui_key_press key=%s button_down=True", key)
             self.hand_input.set_state(button_down=True, button_pressed=True)
         else:
             super().keyPressEvent(event)
@@ -198,8 +201,10 @@ class ScreenShell(QMainWindow):
         key = event.key()
         if key in (Qt.Key_Left, Qt.Key_Right, Qt.Key_A, Qt.Key_D,
                    Qt.Key_Up, Qt.Key_Down, Qt.Key_W, Qt.Key_S):
+            debug("ui_key_release key=%s", key)
             self.hand_input.set_state(joystick_x=0.0, joystick_y=0.0)
         elif key in (Qt.Key_Space, Qt.Key_Return, Qt.Key_Enter):
+            debug("ui_key_release key=%s button_down=False", key)
             self.hand_input.set_state(button_down=False, button_pressed=False)
         else:
             super().keyReleaseEvent(event)

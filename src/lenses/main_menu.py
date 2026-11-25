@@ -1,41 +1,55 @@
-"""Simple tactile point test lens."""
+"""Top-level tactile menu."""
 
-from interface.contracts import (
-    Lens, LensManifest, LensOutput, SpeechRequest, TactileFrame, TactileState,
-)
+from interface.contracts import Lens, LensManifest
+from interface.menu import MenuItem, MenuNavigator
 
 
 class MainMenuLens(Lens):
     manifest = LensManifest(
         lens_id="main_menu",
         name="Main Menu",
-        description="Cycles through the twenty tactile grip points.",
+        description="Selects a lens or opens system settings.",
     )
 
     def __init__(self):
-        self.point_index = None
+        self.menu = None
 
     def start(self, context):
-        self.point_index = None
+        items = []
+        controller = context.controller
+        for lens_id in sorted(controller._factories):
+            if lens_id in ("main_menu", "system_settings"):
+                continue
+            manifest = controller._factories[lens_id]().manifest
+            items.append(MenuItem(
+                lens_id, manifest.name, manifest.description,
+                select=lambda lens_id=lens_id: controller.start(lens_id),
+            ))
+        items.append(MenuItem(
+            "system_settings", "Settings", "Edit overall device settings.",
+            select=lambda: controller.start("system_settings"),
+        ))
+        items.append(MenuItem(
+            "help", "Help", "Repeat menu instructions.",
+        ))
+        self.menu = MenuNavigator(
+            self.manifest.name,
+            items,
+            instructions=(
+                "Move the joystick to slide through menu options.",
+                "Press the button to select.",
+            ),
+        )
 
     def update(self, snapshot, input_state):
-        if input_state.button_pressed:
-            self.point_index = 0 if self.point_index is None else (self.point_index + 1) % 20
-
-        points = [TactileState.OFF] * 20
-        if self.point_index is not None:
-            points[self.point_index] = TactileState.HIGH
-            point_text = f"Point {self.point_index:02d} of 20"
-        else:
-            point_text = "No point selected"
-        return LensOutput(
-            tactile=TactileFrame(tuple(points)),
-            header_text=point_text,
-            info_title=self.manifest.name,
-            info_lines=(
-                "Press Space, Enter, or the button to advance.",
-                point_text,
-                "The highlighted point is the current tactile output.",
-            ),
-            speech=(SpeechRequest(point_text, interrupt=True),) if input_state.button_pressed else (),
-        )
+        result = self.menu.update(input_state)
+        if result.back:
+            return self.menu.output(result)
+        if result.selected is not None and result.selected.select:
+            result.selected.select()
+        if result.selected is not None and result.selected.key == "help":
+            result = type(result)(
+                speech=result.speech + self.menu.instruction_speech(),
+                moved=result.moved,
+            )
+        return self.menu.output(result)
