@@ -1,0 +1,488 @@
+"""Short-range stereo visual odometry with strict map-integration gating."""
+
+import math
+
+import cv2
+import numpy as np
+
+from .map_geometry import Pose2D
+
+
+class PoseTracker:
+    """Estimate world X/Z/yaw; obtain tilt and camera height from the floor fit.
+
+    A confidence-2 keyframe supplies 3D points. LK or ORB matches locate them
+    in the current rectified left image, then PnP RANSAC estimates motion.
+    Failed tracking returns a pose with tracking_ok=False. After a long loss,
+    reinitialization requests a fresh rolling map rather than joining poses
+    across an unobserved motion interval.
+    """
+
+    def __init__(self, config):
+        self.settings = config["map"]
+        self._anchor = None
+        self._anchor_floor = None
+        self._anchor_pose = None
+        self._anchor_points_2d = None
+        self._anchor_points_3d = None
+        self._previous = None
+        self._previous_floor = None
+        self._previous_pose = None
+        self._previous_points_2d = None
+        self._previous_points_3d = None
+        self._orb = cv2.ORB_create(nfeatures=self.settings["tracking_orb_features"])
+        # OpenCV initializes feature kernels lazily. Pay that one-time cost at
+        # construction, outside the live per-frame mapping benchmark.
+        warm_height = max(32, int(config["camera"]["height"] * config["depth"]["scale"]))
+        warm_width = max(32, int(config["camera"]["width"] * config["depth"]["scale"] / 2))
+        warm_image = np.random.default_rng(0).integers(
+            0, 256, (warm_height, warm_width), dtype=np.uint8)
+        cv2.goodFeaturesToTrack(
+            warm_image, maxCorners=self.settings["tracking_max_corners_per_bucket"],
+            qualityLevel=self.settings["tracking_corner_quality"],
+            minDistance=self.settings["tracking_corner_min_distance_px"])
+        self._orb.detectAndCompute(warm_image, None)
+        self._orb_keypoints = None
+        self._orb_descriptors = None
+        self._orb_points_3d = None
+        self.pose = Pose2D(tracking_ok=False)
+        self.tracking_ok = False
+        self.inliers = 0
+        self.method = "uninitialized"
+        self.reset_map = False
+        self.reset_count = 0
+        self.rejection = None
+        self.lk_rejection = None
+        self.recovery_rejection = None
+        self.orb_rejection = None
+        self.lk_matches = 0
+        self.recovery_matches = 0
+        self.orb_matches = 0
+        self._last_good_s = None
+        self._lost_since_s = None
+        self._last_usable_floor = None
+        self._last_usable_floor_s = None
+        self._ever_initialized = False
+        self._places = []
+        self._last_place_s = -float("inf")
+        self._last_loop_check_s = -float("inf")
+        self.loop_closure = None
+        self.loop_count = 0
+        self._relocalize_until_s = -float("inf")
+        self.map_epoch = 0
+        self.place_candidates = 0
+        self.place_best_matches = 0
+        self.place_best_inliers = 0
+        self.place_best_solution = None
+
+    @staticmethod
+    def _camera_matrix(result):
+        q = result.Q
+        focal = float(q[2, 3])
+        return np.array([[focal, 0, -q[0, 3]],
+                         [0, focal, -q[1, 3]], [0, 0, 1]], np.float64)
+
+    def _lift(self, result, points_2d):
+        rows = np.rint(points_2d[:, 1]).astype(np.int32)
+        cols = np.rint(points_2d[:, 0]).astype(np.int32)
+        height, width = result.disparity.shape
+        inside = (rows >= 0) & (rows < height) & (cols >= 0) & (cols < width)
+        rows = np.clip(rows, 0, height - 1)
+        cols = np.clip(cols, 0, width - 1)
+        disp = result.disparity[rows, cols]
+        valid = inside & (result.confidence[rows, cols] == 2) & (disp > 0)
+        pixels = np.stack((points_2d[:, 0], points_2d[:, 1], disp,
+                           np.ones(len(disp))), axis=0)
+        xyz_h = np.asarray(result.Q, np.float64) @ pixels
+        w = xyz_h[3]
+        valid &= np.isfinite(xyz_h).all(axis=0) & (w > 1e-9)
+        p_cam = np.full((len(disp), 3), np.nan, np.float64)
+        p_cam[valid] = (xyz_h[:3, valid] / w[valid]).T
+        valid &= (p_cam[:, 2] >= self.settings["tracking_min_range_m"])
+        valid &= (p_cam[:, 2] <= self.settings["tracking_max_range_m"])
+        return p_cam.astype(np.float32), valid
+
+    def _bucketed_corners(self, result):
+        s = self.settings
+        rows, cols = s["tracking_bucket_rows"], s["tracking_bucket_cols"]
+        h, w = result.gray.shape
+        mask = ((result.confidence == 2) & (result.disparity > 0)).astype(np.uint8) * 255
+        corners = []
+        for row in range(rows):
+            y0, y1 = row * h // rows, (row + 1) * h // rows
+            for col in range(cols):
+                x0, x1 = col * w // cols, (col + 1) * w // cols
+                found = cv2.goodFeaturesToTrack(
+                    result.gray[y0:y1, x0:x1],
+                    maxCorners=s["tracking_max_corners_per_bucket"],
+                    qualityLevel=s["tracking_corner_quality"],
+                    minDistance=s["tracking_corner_min_distance_px"],
+                    mask=mask[y0:y1, x0:x1])
+                if found is not None:
+                    found = found.reshape(-1, 2)
+                    found += np.array([x0, y0], np.float32)
+                    corners.append(found)
+        if not corners:
+            return np.empty((0, 2), np.float32), np.empty((0, 3), np.float32)
+        points_2d = np.concatenate(corners).astype(np.float32)
+        points_3d, valid = self._lift(result, points_2d)
+        return points_2d[valid], points_3d[valid]
+
+    def _set_anchor(self, result, floor, pose, timestamp_s=None):
+        points_2d, points_3d = self._bucketed_corners(result)
+        if len(points_2d) < self.settings["tracking_min_inliers"]:
+            return False
+        self._anchor = result
+        self._anchor_floor = floor
+        self._anchor_pose = pose
+        self._anchor_points_2d = points_2d
+        self._anchor_points_3d = points_3d
+        mask = ((result.confidence == 2) & (result.disparity > 0)).astype(np.uint8) * 255
+        keypoints, descriptors = self._orb.detectAndCompute(result.gray, mask)
+        if keypoints:
+            orb_2d = np.array([point.pt for point in keypoints], np.float32)
+            orb_3d, valid = self._lift(result, orb_2d)
+            self._orb_keypoints = [point for point, keep in zip(keypoints, valid) if keep]
+            self._orb_descriptors = descriptors[valid] if descriptors is not None else None
+            self._orb_points_3d = orb_3d[valid]
+        else:
+            self._orb_keypoints = []
+            self._orb_descriptors = None
+            self._orb_points_3d = None
+        if (timestamp_s is not None and self._orb_descriptors is not None and
+                len(self._orb_descriptors) >= self.settings["tracking_min_inliers"] and
+                timestamp_s - self._last_place_s >= self.settings["place_interval_s"]):
+            self._places.append({"timestamp_s": timestamp_s, "pose": pose,
+                                 "epoch": self.map_epoch,
+                                 "floor": floor,
+                                 "keypoints": self._orb_keypoints,
+                                 "descriptors": self._orb_descriptors.copy(),
+                                 "points_3d": self._orb_points_3d.copy()})
+            self._last_place_s = timestamp_s
+            if len(self._places) > self.settings["place_max_keyframes"]:
+                self._places.pop(0)
+        return True
+
+    def _set_previous(self, result, floor, pose):
+        points_2d, points_3d = self._bucketed_corners(result)
+        if len(points_2d) < self.settings["tracking_min_inliers"]:
+            return False
+        self._previous = result
+        self._previous_floor = floor
+        self._previous_pose = pose
+        self._previous_points_2d = points_2d
+        self._previous_points_3d = points_3d
+        return True
+
+    def _lk_correspondences(self, result, recovery=False):
+        if self._previous is None:
+            return None
+        source = self._previous_points_2d.reshape(-1, 1, 2)
+        target, status, _ = cv2.calcOpticalFlowPyrLK(
+            self._previous.gray, result.gray, source, None,
+            winSize=(self.settings["tracking_recovery_window_px"] if recovery else
+                     self.settings["tracking_lk_window_px"],) * 2,
+            maxLevel=(self.settings["tracking_recovery_pyramid_levels"] if recovery else
+                      self.settings["tracking_lk_pyramid_levels"]),
+            criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+                      self.settings["tracking_lk_iterations"],
+                      self.settings["tracking_lk_epsilon"]))
+        if target is None:
+            return None
+        target = target.reshape(-1, 2)
+        valid = status.ravel().astype(bool) & np.isfinite(target).all(axis=1)
+        if recovery:
+            backward, back_status, _ = cv2.calcOpticalFlowPyrLK(
+                result.gray, self._previous.gray, target.reshape(-1, 1, 2), None,
+                winSize=(self.settings["tracking_recovery_window_px"],) * 2,
+                maxLevel=self.settings["tracking_recovery_pyramid_levels"],
+                criteria=(cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT,
+                          self.settings["tracking_lk_iterations"],
+                          self.settings["tracking_lk_epsilon"]))
+            if backward is None:
+                return None
+            back_error = np.linalg.norm(backward.reshape(-1, 2) -
+                                        source.reshape(-1, 2), axis=1)
+            valid &= back_status.ravel().astype(bool)
+            valid &= np.isfinite(back_error)
+            valid &= back_error <= self.settings["tracking_recovery_forward_backward_px"]
+        h, w = result.gray.shape
+        valid &= (target[:, 0] >= 0) & (target[:, 0] < w)
+        valid &= (target[:, 1] >= 0) & (target[:, 1] < h)
+        return self._previous_points_3d[valid], target[valid], self._previous_points_2d[valid]
+
+    def _orb_correspondences(self, result, place=None, target_features=None):
+        descriptors_old = (self._orb_descriptors if place is None else place["descriptors"])
+        if descriptors_old is None or len(descriptors_old) < 25:
+            return None
+        keypoints, descriptors = (target_features if target_features is not None else
+                                  self._orb.detectAndCompute(result.gray, None))
+        if descriptors is None or len(descriptors) < 25:
+            return None
+        matches = cv2.BFMatcher(cv2.NORM_HAMMING).knnMatch(
+            descriptors_old, descriptors, k=2)
+        good = [pair[0] for pair in matches if len(pair) == 2 and
+                pair[0].distance < self.settings["tracking_orb_ratio"] * pair[1].distance]
+        if len(good) < self.settings["tracking_min_inliers"]:
+            return None
+        old_keypoints = self._orb_keypoints if place is None else place["keypoints"]
+        old_points = self._orb_points_3d if place is None else place["points_3d"]
+        source = np.array([old_keypoints[m.queryIdx].pt for m in good], np.float32)
+        target = np.array([keypoints[m.trainIdx].pt for m in good], np.float32)
+        points_3d = np.array([old_points[m.queryIdx] for m in good], np.float32)
+        return points_3d, target, source
+
+    def _solve(self, correspondences, result, floor, timestamp_s,
+               source_floor=None, source_pose=None, check_motion=True,
+               recovery=False):
+        if correspondences is None:
+            self.rejection = "few_matches"
+            return None
+        points_3d, target_2d, source_2d = correspondences
+        s = self.settings
+        if len(points_3d) < s["tracking_min_inliers"]:
+            self.rejection = "few_matches"
+            return None
+        try:
+            ok, rvec, tvec, inliers = cv2.solvePnPRansac(
+                points_3d, target_2d, self._camera_matrix(result), None,
+                iterationsCount=s["tracking_ransac_iterations"],
+                reprojectionError=(s["tracking_recovery_reprojection_px"] if recovery else
+                                   s["tracking_reprojection_px"]),
+                confidence=s["tracking_ransac_confidence"], flags=cv2.SOLVEPNP_EPNP)
+        except cv2.error:
+            self.rejection = "pnp_error"
+            return None
+        if not ok or inliers is None or len(inliers) < s["tracking_min_inliers"]:
+            self.rejection = "few_inliers"
+            return None
+        inlier_points = source_2d[inliers.ravel()]
+        h, w = result.gray.shape
+        bucket_x = np.clip((inlier_points[:, 0] * s["tracking_bucket_cols"] / w).astype(int),
+                           0, s["tracking_bucket_cols"] - 1)
+        bucket_y = np.clip((inlier_points[:, 1] * s["tracking_bucket_rows"] / h).astype(int),
+                           0, s["tracking_bucket_rows"] - 1)
+        spread = len(np.unique(bucket_y * s["tracking_bucket_cols"] + bucket_x))
+        if spread < s["tracking_min_spread_buckets"]:
+            self.rejection = "clustered_inliers"
+            return None
+        rotation_cur_anchor, _ = cv2.Rodrigues(rvec)
+        center_anchor_cam = -rotation_cur_anchor.T @ tvec.reshape(3)
+        source_floor = source_floor or self._anchor_floor
+        source_pose = source_pose or self._anchor_pose
+        center_anchor_grav = source_floor.rotation_grav_cam @ center_anchor_cam
+        rotation_anchor_grav_cur_grav = (
+            source_floor.rotation_grav_cam @ rotation_cur_anchor.T @
+            floor.rotation_grav_cam.T)
+        forward_anchor_grav = rotation_anchor_grav_cur_grav @ np.array([0., 0., 1.])
+        yaw_relative = math.atan2(forward_anchor_grav[0], forward_anchor_grav[2])
+        anchor_yaw = source_pose.yaw_rad
+        c, si = math.cos(anchor_yaw), math.sin(anchor_yaw)
+        x_world = (source_pose.x_m + c * center_anchor_grav[0] +
+                   si * center_anchor_grav[2])
+        z_world = (source_pose.z_m - si * center_anchor_grav[0] +
+                   c * center_anchor_grav[2])
+        pose = Pose2D(float(x_world), float(z_world),
+                      float(anchor_yaw + yaw_relative), True)
+        if check_motion and self._last_good_s is not None:
+            dt = max(timestamp_s - self._last_good_s, 1e-3)
+            speed = math.hypot(pose.x_m - self.pose.x_m,
+                               pose.z_m - self.pose.z_m) / dt
+            yaw_delta = (pose.yaw_rad - self.pose.yaw_rad + math.pi) % (2 * math.pi) - math.pi
+            yaw_rate = abs(math.degrees(yaw_delta)) / dt
+            speed_limit = (s["tracking_recovery_max_speed_m_s"] if recovery else
+                           s["tracking_max_speed_m_s"])
+            if speed > speed_limit or yaw_rate > s["tracking_max_yaw_deg_s"]:
+                self.rejection = "implausible_motion"
+                return None
+        return pose, len(inliers)
+
+    def _try_loop_closure(self, result, floor, pose, timestamp_s):
+        s = self.settings
+        if timestamp_s - self._last_loop_check_s < s["place_check_interval_s"]:
+            return pose
+        self._last_loop_check_s = timestamp_s
+        relocalizing = timestamp_s <= self._relocalize_until_s
+        candidates = []
+        for place in self._places:
+            if timestamp_s - place["timestamp_s"] < s["place_min_age_s"]:
+                continue
+            distance = math.hypot(pose.x_m - place["pose"].x_m,
+                                  pose.z_m - place["pose"].z_m)
+            yaw = abs((pose.yaw_rad - place["pose"].yaw_rad + math.pi) %
+                      (2 * math.pi) - math.pi)
+            if relocalizing or (distance <= s["place_search_radius_m"] and
+                                yaw <= math.radians(s["place_search_yaw_deg"])):
+                candidates.append((distance + yaw, place))
+        if not candidates:
+            return pose
+        self.place_candidates = len(candidates)
+        features = self._orb.detectAndCompute(result.gray, None)
+        best = None
+        limit = len(candidates) if relocalizing else s["place_max_candidates"]
+        for _, place in sorted(candidates, key=lambda item: item[0])[:limit]:
+            correspondences = self._orb_correspondences(result, place, features)
+            if correspondences is not None:
+                self.place_best_matches = max(self.place_best_matches,
+                                              len(correspondences[0]))
+            solved = self._solve(correspondences, result, floor, timestamp_s,
+                                 place["floor"], place["pose"], check_motion=False)
+            if solved is not None:
+                self.place_best_inliers = max(self.place_best_inliers, solved[1])
+            if solved is None or solved[1] < s["place_min_inliers"]:
+                continue
+            corrected, inliers = solved
+            shift = math.hypot(corrected.x_m - pose.x_m, corrected.z_m - pose.z_m)
+            turn = abs((corrected.yaw_rad - pose.yaw_rad + math.pi) %
+                       (2 * math.pi) - math.pi)
+            if self.place_best_solution is None or inliers > self.place_best_solution["inliers"]:
+                self.place_best_solution = {
+                    "inliers": inliers, "matched_timestamp_s": place["timestamp_s"],
+                    "translation_m": shift, "yaw_deg": math.degrees(turn)}
+            max_shift = (s["place_max_relocalization_m"] if relocalizing else
+                         s["place_max_correction_m"])
+            max_turn = (180 if relocalizing else s["place_max_correction_yaw_deg"])
+            if shift > max_shift or turn > math.radians(max_turn):
+                continue
+            if best is None or inliers > best[0]:
+                best = inliers, place, corrected, shift, turn
+        if best is None:
+            self.rejection = None
+            return pose
+        inliers, place, corrected, shift, turn = best
+        if (shift < s["place_min_correction_m"] and
+                turn < math.radians(s["place_min_correction_yaw_deg"])):
+            self.rejection = None
+            return pose
+        self.loop_closure = {"matched_timestamp_s": place["timestamp_s"],
+                             "inliers": inliers, "translation_m": shift,
+                             "yaw_deg": math.degrees(turn),
+                             "epoch": place["epoch"]}
+        self.loop_count += 1
+        self.map_epoch = place["epoch"]
+        self._relocalize_until_s = -float("inf")
+        self.rejection = None
+        # Keyframes collected after the matched place may carry the drift we
+        # just corrected. Keep older anchors and rebuild recent ones in the
+        # corrected coordinate frame.
+        self._places = [saved for saved in self._places
+                        if saved["epoch"] != place["epoch"] or
+                        saved["timestamp_s"] <= place["timestamp_s"]]
+        self._last_place_s = min(self._last_place_s, place["timestamp_s"])
+        # Re-anchor visual odometry in the corrected coordinate frame. New
+        # measurements must not be attached to the old drifting anchor.
+        self._set_anchor(result, floor, corrected)
+        self._set_previous(result, floor, corrected)
+        return corrected
+
+    def update(self, result, floor, timestamp_s):
+        self.reset_map = False
+        self.loop_closure = None
+        self.place_candidates = 0
+        self.place_best_matches = 0
+        self.place_best_inliers = 0
+        self.place_best_solution = None
+        self.inliers = 0
+        self.rejection = None
+        self.lk_rejection = None
+        self.recovery_rejection = None
+        self.orb_rejection = None
+        self.lk_matches = 0
+        self.recovery_matches = 0
+        self.orb_matches = 0
+        floor_bridge = False
+        if floor.usable:
+            self._last_usable_floor = floor
+            self._last_usable_floor_s = timestamp_s
+        elif (self._anchor is not None and self._last_usable_floor is not None and
+              timestamp_s - self._last_usable_floor_s <=
+              self.settings["tracking_floor_bridge_s"]):
+            # Visual motion can keep the pose alive briefly while floor fitting
+            # fails. ObstacleMap still refuses to integrate without a fresh floor.
+            floor = self._last_usable_floor
+            floor_bridge = True
+        else:
+            return self._lost(timestamp_s, "floor_lost")
+        if self._anchor is None:
+            origin = Pose2D()
+            recovering = self._ever_initialized and self._lost_since_s is not None
+            if recovering:
+                self.map_epoch += 1
+            if not self._set_anchor(result, floor, origin, timestamp_s):
+                if recovering:
+                    self.map_epoch -= 1
+                return self._lost(timestamp_s, "few_features")
+            self._set_previous(result, floor, origin)
+            if recovering:
+                self.reset_map = True
+                self.reset_count += 1
+                self._relocalize_until_s = timestamp_s + self.settings[
+                    "place_relocalization_window_s"]
+            self._ever_initialized = True
+            self.pose = origin
+            self.tracking_ok = True
+            self._last_good_s = timestamp_s
+            self._lost_since_s = None
+            self.method = "initialized"
+            if self._ever_initialized and len(self._places) > 1:
+                corrected = self._try_loop_closure(result, floor, origin, timestamp_s)
+                self.pose = corrected
+                return corrected
+            return origin
+        method = "lk"
+        lk = self._lk_correspondences(result)
+        self.lk_matches = 0 if lk is None else len(lk[0])
+        solved = self._solve(lk, result, floor,
+                             timestamp_s, self._previous_floor, self._previous_pose)
+        if solved is None:
+            self.lk_rejection = self.rejection
+            method = "orb"
+            orb = self._orb_correspondences(result)
+            self.orb_matches = 0 if orb is None else len(orb[0])
+            solved = self._solve(orb, result, floor, timestamp_s)
+            if solved is None:
+                self.orb_rejection = self.rejection
+        if solved is None:
+            recovery_lk = self._lk_correspondences(result, recovery=True)
+            self.recovery_matches = 0 if recovery_lk is None else len(recovery_lk[0])
+            solved = self._solve(recovery_lk, result, floor, timestamp_s,
+                                 self._previous_floor, self._previous_pose,
+                                 recovery=True)
+            if solved is None:
+                self.recovery_rejection = self.rejection
+            else:
+                method = "lk_recovery"
+        if solved is None:
+            self.rejection = (self.recovery_rejection or self.lk_rejection or
+                              self.orb_rejection)
+            return self._lost(timestamp_s, "tracking_lost")
+        pose, self.inliers = solved
+        self.rejection = None
+        if not floor_bridge and floor.fresh:
+            pose = self._try_loop_closure(result, floor, pose, timestamp_s)
+        self.pose = pose
+        self.tracking_ok = True
+        self._last_good_s = timestamp_s
+        self._lost_since_s = None
+        self.method = method + "_floor_bridge" if floor_bridge else method
+        self._set_previous(result, floor, pose)
+        anchor_distance = math.hypot(pose.x_m - self._anchor_pose.x_m,
+                                     pose.z_m - self._anchor_pose.z_m)
+        anchor_yaw_delta = abs(math.degrees(
+            (pose.yaw_rad - self._anchor_pose.yaw_rad + math.pi) % (2 * math.pi) - math.pi))
+        if not floor_bridge and floor.fresh and (
+                anchor_distance >= self.settings["keyframe_translation_m"] or
+                anchor_yaw_delta >= self.settings["keyframe_yaw_deg"]):
+            self._set_anchor(result, floor, pose, timestamp_s)
+        return pose
+
+    def _lost(self, timestamp_s, reason):
+        if self._lost_since_s is None:
+            self._lost_since_s = timestamp_s
+        self.tracking_ok = False
+        self.method = reason
+        if timestamp_s - self._lost_since_s >= self.settings["tracking_reset_after_s"]:
+            self._anchor = None
+            self._previous = None
+        self.pose = Pose2D(self.pose.x_m, self.pose.z_m, self.pose.yaw_rad, False)
+        return self.pose
