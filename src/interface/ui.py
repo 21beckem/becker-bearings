@@ -108,9 +108,11 @@ class InfoPanel(QLabel):
         self.setAlignment(Qt.AlignTop | Qt.AlignLeft)
         self.setMargin(16)
 
-    def set_output(self, output):
+    def set_output(self, output, audio_error=None):
         lines = [f"<h2>{output.info_title}</h2>"]
         lines.extend(f"<p>{line}</p>" for line in output.info_lines)
+        if audio_error:
+            lines.append(f"<p><b>Audio error:</b> {audio_error}</p>")
         self.setText("".join(lines))
 
 
@@ -216,7 +218,7 @@ class ScreenShell(QMainWindow):
         output = self.controller.update(snapshot, self.hand_input.read())
         self.header.setText(output.header_text or self.controller.audio.current_text or " ")
         self.tactile.set_frame(output.tactile)
-        self.info.set_output(output)
+        self.info.set_output(output, self.controller.audio.last_error)
         self.disparity.set_image(ImageTools.depth_image(snapshot.result))
         if output.view_mode == "camera":
             self.lens_view.set_image(snapshot.result.gray)

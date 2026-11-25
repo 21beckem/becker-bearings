@@ -1,11 +1,13 @@
 """Simple tactile point test lens."""
 
-from interface.contracts import Lens, LensManifest, LensOutput, TactileFrame, TactileState
+from interface.contracts import (
+    Lens, LensManifest, LensOutput, SpeechRequest, TactileFrame, TactileState,
+)
 
 
 class MainMenuLens(Lens):
     manifest = LensManifest(
-        lens_id="main-menu",
+        lens_id="main_menu",
         name="Main Menu",
         description="Cycles through the twenty tactile grip points.",
     )
@@ -35,4 +37,5 @@ class MainMenuLens(Lens):
                 point_text,
                 "The highlighted point is the current tactile output.",
             ),
+            speech=(SpeechRequest(point_text, interrupt=True),) if input_state.button_pressed else (),
         )

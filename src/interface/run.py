@@ -1,8 +1,6 @@
 """Launch the developer screen UI.
 
-Run from the repository root with:
-
-    PYTHONPATH=src python -m interface.run
+Run from the repository root with ``begin.bat``.
 """
 
 import argparse
@@ -25,12 +23,14 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--camera", action="store_true", help="use the physical stereo camera")
     parser.add_argument("--recording", default="", help="recording filename or path")
-    parser.add_argument("--svg", default="", help="override the tactile grip SVG path")
     args = parser.parse_args(argv)
 
     config = load_config()
     if args.recording:
         config["camera"]["recording"] = recording_by_name(args.recording)
+    from PySide6.QtWidgets import QApplication as QtApplication
+    application = QtApplication(sys.argv)
+
     runtime = ComputeRuntime(config)
     feed_class = PhysicalCameraFeed if args.camera else CameraFeed
     worker = ComputeWorker(runtime, feed_class, config["camera"])
@@ -38,12 +38,10 @@ def main(argv=None):
     controller = LensController()
     controller.register(DevelopmentLens)
     controller.discover_directory(Path(__file__).resolve().parents[1] / "lenses")
-    initial_lens = "main-menu" if controller.has_lens("main-menu") else "development"
+    initial_lens = "main_menu" if controller.has_lens("main_menu") else "development"
     controller.start(initial_lens)
 
-    from PySide6.QtWidgets import QApplication as QtApplication
-    application = QtApplication(sys.argv)
-    svg_path = Path(args.svg) if args.svg else Path(__file__).resolve().parents[1] / "assets" / "grip.svg"
+    svg_path = Path(__file__).resolve().parents[1] / "assets" / "grip.svg"
     window = ScreenShell(controller, worker, svg_path, hand_input)
     worker.start()
     window.show()
