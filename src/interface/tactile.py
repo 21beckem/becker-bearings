@@ -26,18 +26,20 @@ class ChannelTactileOutput(TactileOutput):
     When it is omitted, *port* is passed to :class:`ChannelSender`.
     """
 
-    def __init__(self, port=None, baudrate=115200, interval_s=0.1, sender=None):
+    def __init__(self, port=None, baudrate=115200, interval_s=0.1,
+                 reconnect_interval_s=1.0, sender=None):
         if interval_s <= 0:
             raise ValueError("interval_s must be greater than zero")
+        if reconnect_interval_s <= 0:
+            raise ValueError("reconnect_interval_s must be greater than zero")
         if sender is None and port is None:
             raise ValueError("port is required when sender is not provided")
 
-        if sender is None:
-            # Keep serial hardware optional for the screen-only development UI.
-            from .channel_sender import ChannelSender
-            sender = ChannelSender(port, baudrate)
+        self._port = port
+        self._baudrate = baudrate
         self._sender = sender
         self._interval_s = float(interval_s)
+        self._reconnect_interval_s = float(reconnect_interval_s)
         self._frame = TactileFrame.off()
         self._lock = Lock()
         self._stop = Event()
@@ -55,15 +57,47 @@ class ChannelTactileOutput(TactileOutput):
 
     def _run(self):
         next_tick = monotonic() + self._interval_s
+        next_connection_attempt = 0.0
         while not self._stop.is_set():
             wait_s = max(0.0, next_tick - monotonic())
             if self._stop.wait(wait_s):
                 break
 
             with self._lock:
+                sender = self._sender
                 frame = self._frame
-            self._sender.set_all(tuple(point.value for point in frame.points))
-            self._sender.send()
+
+            if sender is None:
+                now = monotonic()
+                if now >= next_connection_attempt:
+                    try:
+                        # Keep serial hardware optional for the screen-only UI.
+                        from .channel_sender import ChannelSender
+                        sender = ChannelSender(self._port, self._baudrate)
+                        with self._lock:
+                            if self._closed:
+                                sender.close()
+                                return
+                            self._sender = sender
+                    except Exception:
+                        next_connection_attempt = now + self._reconnect_interval_s
+                        sender = None
+
+            if sender is not None:
+                try:
+                    sender.set_all(tuple(point.value for point in frame.points))
+                    sender.send()
+                except Exception:
+                    # A disconnected grip must not affect the screen or lens.
+                    # Drop this connection and let the retry timer reconnect it.
+                    try:
+                        sender.close()
+                    except Exception:
+                        pass
+                    with self._lock:
+                        if self._sender is sender:
+                            self._sender = None
+                    next_connection_attempt = monotonic() + self._reconnect_interval_s
 
             next_tick += self._interval_s
             # Do not spin trying to catch up if serial I/O took longer than a
@@ -79,7 +113,14 @@ class ChannelTactileOutput(TactileOutput):
             self._closed = True
         self._stop.set()
         self._thread.join()
-        self._sender.close()
+        with self._lock:
+            sender = self._sender
+            self._sender = None
+        if sender is not None:
+            try:
+                sender.close()
+            except Exception:
+                pass
 
 
 class MirroredTactileOutput(TactileOutput):
