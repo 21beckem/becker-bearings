@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 
 from compute.module.image_tools import ImageTools
-from compute.module.map_view import render_map
+from compute.module.map_view import render_finger_rays, render_map
 
 try:
     from PySide6.QtCore import QPointF, QRectF, Qt, QTimer
@@ -224,6 +224,9 @@ class ScreenShell(QMainWindow):
             self.lens_view.set_image(snapshot.result.gray)
         elif output.view_mode == "disparity":
             self.lens_view.set_image(ImageTools.depth_image(snapshot.result))
+        elif output.view_mode == "finger_rays" and output.view_payload is not None:
+            self.lens_view.set_image(
+                render_finger_rays(snapshot.obstacle_map, output.view_payload))
         else:
             self.lens_view.set_image(render_map(snapshot.obstacle_map))
         self.footer.set_snapshot(snapshot)

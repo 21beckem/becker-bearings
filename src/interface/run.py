@@ -31,6 +31,7 @@ def main(argv=None):
     parser.add_argument("--tactile-port", default="COM4", help="serial port for the tactile grip")
     parser.add_argument("--tactile-interval", type=float, default=0.01,
                         help="seconds between tactile hardware updates")
+    parser.add_argument("--lens", default="main_menu", help="the initial lens to load (default: main_menu)")
     parser.add_argument("--screen-only", action="store_true",
                         help="disable the physical tactile grip")
     args = parser.parse_args(argv)
@@ -57,7 +58,7 @@ def main(argv=None):
     controller = LensController(tactile=tactile_output)
     controller.register(DevelopmentLens)
     controller.discover_directory(Path(__file__).resolve().parents[1] / "lenses")
-    initial_lens = "main_menu" if controller.has_lens("main_menu") else "development"
+    initial_lens = args.lens if controller.has_lens(args.lens) else "development"
     controller.start(initial_lens)
 
     svg_path = Path(__file__).resolve().parents[1] / "assets" / "grip.svg"

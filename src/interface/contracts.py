@@ -58,6 +58,7 @@ class LensOutput:
     info_lines: tuple[str, ...] = ()
     view_mode: str = "map"
     speech: tuple[SpeechRequest, ...] = ()
+    view_payload: object = None
 
 
 @dataclass(frozen=True)

@@ -12,7 +12,10 @@ ROOT = pathlib.Path(__file__).resolve().parents[2]
 class LensDiscoveryTests(unittest.TestCase):
     def test_main_menu_script_is_discovered(self):
         factories = list(discover_lenses(ROOT / "lenses"))
-        self.assertEqual([factory.manifest.lens_id for factory in map(lambda f: f(), factories)], ["main_menu"])
+        self.assertEqual(
+            [factory.manifest.lens_id for factory in map(lambda f: f(), factories)],
+            ["finger_rays", "main_menu"],
+        )
 
     def test_main_menu_advances_once_per_button_press(self):
         class FakeAudio:
