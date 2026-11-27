@@ -15,6 +15,42 @@ from interface.tactile import ScreenTactileOutput
 
 
 class MenuSettingsTests(unittest.TestCase):
+    def test_known_phrase_plays_clip_without_calling_tts_backend(self):
+        class RecordingBackend(SpeechBackend):
+            def __init__(self):
+                self.calls = []
+                self.called = Event()
+
+            def speak(self, text, interrupt=False):
+                self.calls.append((text, interrupt))
+                self.called.set()
+
+        class RecordingClipPlayer:
+            def __init__(self):
+                self.calls = []
+
+            def clip_for_text(self, text):
+                return "menu.settings" if text == "Settings" else None
+
+            def play_clip(self, clip_id, interrupt=True):
+                self.calls.append((clip_id, interrupt))
+                return clip_id == "menu.settings"
+
+            def close(self):
+                pass
+
+        backend = RecordingBackend()
+        clips = RecordingClipPlayer()
+        audio = AudioService(backend=backend, clip_player=clips)
+        try:
+            audio.speak("Settings", interrupt=True)
+            audio.speak("dynamic text", interrupt=True)
+            self.assertTrue(backend.called.wait(1.0))
+        finally:
+            audio.close()
+        self.assertEqual(clips.calls, [("menu.settings", True)])
+        self.assertEqual(backend.calls, [("dynamic text", True)])
+
     def test_interrupting_speech_does_not_kill_audio_worker(self):
         started = Event()
         release = Event()

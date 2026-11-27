@@ -1,0 +1,259 @@
+{
+  "format": 1,
+  "engine": "kokoro",
+  "engine_version": "0.9.4",
+  "language": "a",
+  "voice": "af_bella",
+  "speed": 1.0,
+  "sample_rate": 24000,
+  "channels": 1,
+  "sample_format": "PCM_16",
+  "phrases": [
+    {
+      "id": "main_menu.finger_rays.entry",
+      "text": "Main Menu. Finger Rays Move the joystick to slide through menu options. Press the button to select.",
+      "file": "main_menu.finger_rays.entry.wav",
+      "fingerprint": "af838650974c9ef9db451a309203a18d543dfc15fa3ecbd8e64552949c6fb3d9"
+    },
+    {
+      "id": "main_menu.settings.entry",
+      "text": "Main Menu. Settings Move the joystick to slide through menu options. Press the button to select.",
+      "file": "main_menu.settings.entry.wav",
+      "fingerprint": "4fd8abc389edea8415061e3723263d7937c713944254f6c9139497567c80d768"
+    },
+    {
+      "id": "main_menu.help.entry",
+      "text": "Main Menu. Help Move the joystick to slide through menu options. Press the button to select.",
+      "file": "main_menu.help.entry.wav",
+      "fingerprint": "5ef1d7d1b5c2c492fbe43c0f54f73680c1885fc06e9f70437e63281abb4e13c1"
+    },
+    {
+      "id": "main_menu.finger_rays.silent_entry",
+      "text": "Main Menu. Finger Rays",
+      "file": "main_menu.finger_rays.silent_entry.wav",
+      "fingerprint": "8f461e5d09bbfd3e4b3e7cc95dbbd2c9d0a54b92ce6d3e6907d054dda03e483b"
+    },
+    {
+      "id": "main_menu.settings.silent_entry",
+      "text": "Main Menu. Settings",
+      "file": "main_menu.settings.silent_entry.wav",
+      "fingerprint": "a7c2922a344dffeaf6d2721359c977970d5cc1d31f842208135c2570d630667c"
+    },
+    {
+      "id": "main_menu.help.silent_entry",
+      "text": "Main Menu. Help",
+      "file": "main_menu.help.silent_entry.wav",
+      "fingerprint": "2fdfeff8eddc3e19d122650010b0b60190d5881f63ade6c46c8acb8bdd024da2"
+    },
+    {
+      "id": "main_menu.finger_rays",
+      "text": "Finger Rays",
+      "file": "main_menu.finger_rays.wav",
+      "fingerprint": "f116eac7ef4226e6e1d7f52b93ded8167209eb1e3ce6e0517b3a26a20ebcc29a"
+    },
+    {
+      "id": "menu.settings",
+      "text": "Settings",
+      "file": "menu.settings.wav",
+      "fingerprint": "baa312a479fd5495a905d1d55266cff029b58da0aa79478b63869cf023684ca5"
+    },
+    {
+      "id": "menu.help",
+      "text": "Help",
+      "file": "menu.help.wav",
+      "fingerprint": "9883ff639048d6ed1bd9e9d29c3de286f86698a2bab455d300d331bcc474449c"
+    },
+    {
+      "id": "menu.instructions",
+      "text": "Menu instructions. Move the joystick to slide through menu options. Press the button to select.",
+      "file": "menu.instructions.wav",
+      "fingerprint": "1a3591a3edeecf7c5cf6943e1141817989c926fa119844d74b3671c119ec6670"
+    },
+    {
+      "id": "quick_menu.close.entry",
+      "text": "Quick menu. Close menu Move the joystick to slide through quick menu options. Press the button to select.",
+      "file": "quick_menu.close.entry.wav",
+      "fingerprint": "391c0ecdc743461273a8c0d7aa51ed5a267ffdecab06abfc39dc5140178385de"
+    },
+    {
+      "id": "quick_menu.main_menu.entry",
+      "text": "Quick menu. Main Menu Move the joystick to slide through quick menu options. Press the button to select.",
+      "file": "quick_menu.main_menu.entry.wav",
+      "fingerprint": "2e57e7377b297bcee0fbbcc7506d7cce488935ec27ee14527b9342d87819c1e1"
+    },
+    {
+      "id": "quick_menu.lens_settings.entry",
+      "text": "Quick menu. Lens settings Move the joystick to slide through quick menu options. Press the button to select.",
+      "file": "quick_menu.lens_settings.entry.wav",
+      "fingerprint": "a313a66b9eccb66ca1513688af8a5715948d5845255ffe46b0adc37906034588"
+    },
+    {
+      "id": "quick_menu.close.silent_entry",
+      "text": "Quick menu. Close menu",
+      "file": "quick_menu.close.silent_entry.wav",
+      "fingerprint": "675c2f7acffd40e304a2d9410a02f7d055028d064d89133c659386b7f6b948f1"
+    },
+    {
+      "id": "quick_menu.main_menu.silent_entry",
+      "text": "Quick menu. Main Menu",
+      "file": "quick_menu.main_menu.silent_entry.wav",
+      "fingerprint": "e145639afbbdcf4a7335399aa2ef2408b1f9fc4c7dde1d82ba16c37ff5a3ce54"
+    },
+    {
+      "id": "quick_menu.lens_settings.silent_entry",
+      "text": "Quick menu. Lens settings",
+      "file": "quick_menu.lens_settings.silent_entry.wav",
+      "fingerprint": "500d18a41f578607e0d8aa6b1c3f88362ee3ae344f26a1e3acc47bd67779e399"
+    },
+    {
+      "id": "quick_menu.close",
+      "text": "Close menu",
+      "file": "quick_menu.close.wav",
+      "fingerprint": "223b6118b3e306fb5211cafe059952e6dc128e800c04683014b44ebc1503745f"
+    },
+    {
+      "id": "quick_menu.main_menu",
+      "text": "Main Menu",
+      "file": "quick_menu.main_menu.wav",
+      "fingerprint": "f5e67ed0df0151d4789d41e594f5ae78a16dfe51ea9c1cf64e723dc091e3d6b3"
+    },
+    {
+      "id": "quick_menu.lens_settings",
+      "text": "Lens settings",
+      "file": "quick_menu.lens_settings.wav",
+      "fingerprint": "aa519e9a039f482571ad986a3d69b72ed76fe47962b71791608f55c4ae8a9656"
+    },
+    {
+      "id": "quick_menu.no_settings",
+      "text": "This lens has no settings.",
+      "file": "quick_menu.no_settings.wav",
+      "fingerprint": "ce0aadb5270478cbd8f60a9b0c817be7f01c2862725a2a4ff506e77148df7001"
+    },
+    {
+      "id": "lens.finger_rays.entered",
+      "text": "Finger Rays entered.",
+      "file": "lens.finger_rays.entered.wav",
+      "fingerprint": "fd13e2b0d17aac18a1e6be175448714cbada1e5faf28d5cd102f131298979e95"
+    },
+    {
+      "id": "system_settings.menu_instructions.on.entry",
+      "text": "System Settings. Menu instructions. Current value: on Move the joystick to slide through options. Press the button to select.",
+      "file": "system_settings.menu_instructions.on.entry.wav",
+      "fingerprint": "65ce7688147ef4f115df9038b7b234b90bb59898af8fbfc95da73a714086aef6"
+    },
+    {
+      "id": "system_settings.menu_instructions.off.entry",
+      "text": "System Settings. Menu instructions. Current value: off Move the joystick to slide through options. Press the button to select.",
+      "file": "system_settings.menu_instructions.off.entry.wav",
+      "fingerprint": "fb7b9edb2a140a933c8f0a3c419e7dfc12fa68b99ad08d7feac4514cc8f66c8b"
+    },
+    {
+      "id": "system_settings.menu_instructions.on.silent_entry",
+      "text": "System Settings. Menu instructions. Current value: on",
+      "file": "system_settings.menu_instructions.on.silent_entry.wav",
+      "fingerprint": "3721aa53471f3cd6aaf2540239754d8622fda88d227d93c955189340f9419abd"
+    },
+    {
+      "id": "system_settings.menu_instructions.off.silent_entry",
+      "text": "System Settings. Menu instructions. Current value: off",
+      "file": "system_settings.menu_instructions.off.silent_entry.wav",
+      "fingerprint": "659198b87f4bb5f5a432932d5e31ae6e85783ddab1a237e8b08944b1f7c08590"
+    },
+    {
+      "id": "settings.value.menu_instructions.on.entry",
+      "text": "Menu instructions. on. Current value: on Move the joystick to choose a value. Press the button to accept.",
+      "file": "settings.value.menu_instructions.on.entry.wav",
+      "fingerprint": "884d2544bff70e16cc67e4f19f6faa8b88130515645dca9f68326d44f5093b7c"
+    },
+    {
+      "id": "settings.value.menu_instructions.off.entry",
+      "text": "Menu instructions. off. Current value: off Move the joystick to choose a value. Press the button to accept.",
+      "file": "settings.value.menu_instructions.off.entry.wav",
+      "fingerprint": "a5962d6aa529c5cb6557123a65fb5126596a8299ac336af5593416d7504ec809"
+    },
+    {
+      "id": "settings.value.menu_instructions.on",
+      "text": "on. Current value: on",
+      "file": "settings.value.menu_instructions.on.wav",
+      "fingerprint": "7ed59be31ae45069061ea830085f24cbb181e68d42e3db54dbdbd113d7c70ec8"
+    },
+    {
+      "id": "settings.value.menu_instructions.off",
+      "text": "off. Current value: off",
+      "file": "settings.value.menu_instructions.off.wav",
+      "fingerprint": "8b371b689d1064a44be05df38ef9518cce1ea0ed7aa2909c51948684f6a129eb"
+    },
+    {
+      "id": "settings.value.menu_instructions.on.silent_entry",
+      "text": "Menu instructions. on. Current value: on",
+      "file": "settings.value.menu_instructions.on.silent_entry.wav",
+      "fingerprint": "c12330c06e3cbcecba2ba1b50d56da7e25857b3a43105fe7dd1d52f83d9f94af"
+    },
+    {
+      "id": "settings.value.menu_instructions.off.silent_entry",
+      "text": "Menu instructions. off. Current value: off",
+      "file": "settings.value.menu_instructions.off.silent_entry.wav",
+      "fingerprint": "3aa91075762b96f07b0254d26f2ef03661a90e89cab78b070d4fb7ce97c250cf"
+    },
+    {
+      "id": "settings.value.menu_instructions.on.accepted",
+      "text": "Menu instructions. on accepted.",
+      "file": "settings.value.menu_instructions.on.accepted.wav",
+      "fingerprint": "6a470c174a6a628f9049e3eebd7eb6fb6ceac6b4a6668f435605d163feaa1566"
+    },
+    {
+      "id": "settings.value.menu_instructions.off.accepted",
+      "text": "Menu instructions. off accepted.",
+      "file": "settings.value.menu_instructions.off.accepted.wav",
+      "fingerprint": "5a3b51800a5b167904be2f716e0de0343d37fbc56184698edad9dd2dbeed7e98"
+    },
+    {
+      "id": "settings.instructions",
+      "text": "Menu instructions. Move the joystick to choose a value. Press the button to accept.",
+      "file": "settings.instructions.wav",
+      "fingerprint": "e0c5da5332d85b5f10cbdd73e6d74aa4914305ab788f5731da0ee45429652448"
+    },
+    {
+      "id": "settings.reset_defaults",
+      "text": "Reset all settings to defaults",
+      "file": "settings.reset_defaults.wav",
+      "fingerprint": "5b147daa8f4c5ead751397ed5a2ba2adb176f0d8a3885cae75ceb6829d3b45e0"
+    },
+    {
+      "id": "settings.finish",
+      "text": "Finish settings",
+      "file": "settings.finish.wav",
+      "fingerprint": "c9a1c8dc6a0044e5d7b67434de03e62501ed83d7dae576d857cca39c26e7a02c"
+    },
+    {
+      "id": "settings.help",
+      "text": "Repeat menu instructions",
+      "file": "settings.help.wav",
+      "fingerprint": "54bc78893fc92da6287d0a2d14fdbbe850a87e22fef4b94ea562559d6533ad96"
+    },
+    {
+      "id": "settings.back",
+      "text": "Back",
+      "file": "settings.back.wav",
+      "fingerprint": "21c11a4873990d2a0fbb6e8209548948303777a8ed21c6e175892126253f9822"
+    },
+    {
+      "id": "review.save",
+      "text": "Save and leave",
+      "file": "review.save.wav",
+      "fingerprint": "1f0de2d0515a37ccd9c927cf246f2564f9639f02e10e846e2e98d9958370e8c0"
+    },
+    {
+      "id": "review.continue",
+      "text": "Continue editing",
+      "file": "review.continue.wav",
+      "fingerprint": "6b75d9f6841c63946c9ddf4680401f1bc481fdc74cfc6b3b924b51152d7a458a"
+    },
+    {
+      "id": "review.discard",
+      "text": "Discard changes",
+      "file": "review.discard.wav",
+      "fingerprint": "018cde8fbe4605d3a976f64495e0d4ae6d41277ddaafbd5cb0b1038a47e741be"
+    }
+  ]
+}

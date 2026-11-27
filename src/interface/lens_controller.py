@@ -155,7 +155,8 @@ class LensController:
                 text, request.category, request.interrupt, instructions_enabled,
             )
             self.audio.speak(
-                text, request.interrupt, request.priority, request.category
+                text, request.interrupt, request.priority, request.category,
+                request.clip_id,
             )
         self.last_output = output
         return output

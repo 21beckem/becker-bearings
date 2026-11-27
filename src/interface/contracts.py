@@ -60,6 +60,7 @@ class SpeechRequest:
     priority: int = 0
     category: SpeechCategory = SpeechCategory.CONTENT
     instruction_text: str = ""
+    clip_id: str = ""
 
 
 @dataclass(frozen=True)

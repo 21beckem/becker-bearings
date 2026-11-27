@@ -1,0 +1,171 @@
+{
+  "language": "a",
+  "voice": "af_bella",
+  "speed": 1.0,
+  "phrases": [
+    {
+      "id": "main_menu.finger_rays.entry",
+      "text": "Main Menu. Finger Rays Move the joystick to slide through menu options. Press the button to select."
+    },
+    {
+      "id": "main_menu.settings.entry",
+      "text": "Main Menu. Settings Move the joystick to slide through menu options. Press the button to select."
+    },
+    {
+      "id": "main_menu.help.entry",
+      "text": "Main Menu. Help Move the joystick to slide through menu options. Press the button to select."
+    },
+    {
+      "id": "main_menu.finger_rays.silent_entry",
+      "text": "Main Menu. Finger Rays"
+    },
+    {
+      "id": "main_menu.settings.silent_entry",
+      "text": "Main Menu. Settings"
+    },
+    {
+      "id": "main_menu.help.silent_entry",
+      "text": "Main Menu. Help"
+    },
+    {
+      "id": "main_menu.finger_rays",
+      "text": "Finger Rays"
+    },
+    {
+      "id": "menu.settings",
+      "text": "Settings"
+    },
+    {
+      "id": "menu.help",
+      "text": "Help"
+    },
+    {
+      "id": "menu.instructions",
+      "text": "Menu instructions. Move the joystick to slide through menu options. Press the button to select."
+    },
+    {
+      "id": "quick_menu.close.entry",
+      "text": "Quick menu. Close menu Move the joystick to slide through quick menu options. Press the button to select."
+    },
+    {
+      "id": "quick_menu.main_menu.entry",
+      "text": "Quick menu. Main Menu Move the joystick to slide through quick menu options. Press the button to select."
+    },
+    {
+      "id": "quick_menu.lens_settings.entry",
+      "text": "Quick menu. Lens settings Move the joystick to slide through quick menu options. Press the button to select."
+    },
+    {
+      "id": "quick_menu.close.silent_entry",
+      "text": "Quick menu. Close menu"
+    },
+    {
+      "id": "quick_menu.main_menu.silent_entry",
+      "text": "Quick menu. Main Menu"
+    },
+    {
+      "id": "quick_menu.lens_settings.silent_entry",
+      "text": "Quick menu. Lens settings"
+    },
+    {
+      "id": "quick_menu.close",
+      "text": "Close menu"
+    },
+    {
+      "id": "quick_menu.main_menu",
+      "text": "Main Menu"
+    },
+    {
+      "id": "quick_menu.lens_settings",
+      "text": "Lens settings"
+    },
+    {
+      "id": "quick_menu.no_settings",
+      "text": "This lens has no settings."
+    },
+    {
+      "id": "lens.finger_rays.entered",
+      "text": "Finger Rays entered."
+    },
+    {
+      "id": "system_settings.menu_instructions.on.entry",
+      "text": "System Settings. Menu instructions. Current value: on Move the joystick to slide through options. Press the button to select."
+    },
+    {
+      "id": "system_settings.menu_instructions.off.entry",
+      "text": "System Settings. Menu instructions. Current value: off Move the joystick to slide through options. Press the button to select."
+    },
+    {
+      "id": "system_settings.menu_instructions.on.silent_entry",
+      "text": "System Settings. Menu instructions. Current value: on"
+    },
+    {
+      "id": "system_settings.menu_instructions.off.silent_entry",
+      "text": "System Settings. Menu instructions. Current value: off"
+    },
+    {
+      "id": "settings.value.menu_instructions.on.entry",
+      "text": "Menu instructions. on. Current value: on Move the joystick to choose a value. Press the button to accept."
+    },
+    {
+      "id": "settings.value.menu_instructions.off.entry",
+      "text": "Menu instructions. off. Current value: off Move the joystick to choose a value. Press the button to accept."
+    },
+    {
+      "id": "settings.value.menu_instructions.on",
+      "text": "on. Current value: on"
+    },
+    {
+      "id": "settings.value.menu_instructions.off",
+      "text": "off. Current value: off"
+    },
+    {
+      "id": "settings.value.menu_instructions.on.silent_entry",
+      "text": "Menu instructions. on. Current value: on"
+    },
+    {
+      "id": "settings.value.menu_instructions.off.silent_entry",
+      "text": "Menu instructions. off. Current value: off"
+    },
+    {
+      "id": "settings.value.menu_instructions.on.accepted",
+      "text": "Menu instructions. on accepted."
+    },
+    {
+      "id": "settings.value.menu_instructions.off.accepted",
+      "text": "Menu instructions. off accepted."
+    },
+    {
+      "id": "settings.instructions",
+      "text": "Menu instructions. Move the joystick to choose a value. Press the button to accept."
+    },
+    {
+      "id": "settings.reset_defaults",
+      "text": "Reset all settings to defaults"
+    },
+    {
+      "id": "settings.finish",
+      "text": "Finish settings"
+    },
+    {
+      "id": "settings.help",
+      "text": "Repeat menu instructions"
+    },
+    {
+      "id": "settings.back",
+      "text": "Back"
+    },
+    {
+      "id": "review.save",
+      "text": "Save and leave"
+    },
+    {
+      "id": "review.continue",
+      "text": "Continue editing"
+    },
+    {
+      "id": "review.discard",
+      "text": "Discard changes"
+    }
+  ]
+}

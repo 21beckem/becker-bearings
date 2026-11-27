@@ -17,3 +17,8 @@ Left/Right and A/D are not controls. The SVG
 must contain exactly `point-00` through `point-19`, each with `cx` and `cy`
 attributes. Pressing the button in the main-menu lens announces the selected
 point through the audio service.
+
+If `src/assets/audio/manifest.json` is present, the audio service preloads its
+generated WAV clips through Qt Multimedia and plays exact phrase matches
+immediately. Speech without a matching clip continues through the existing
+runtime TTS backend.
