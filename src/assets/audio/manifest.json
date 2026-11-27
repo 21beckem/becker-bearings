@@ -12,247 +12,282 @@
     {
       "id": "lens.main_menu.entry",
       "type": "LensEntry",
+      "concatenate": false,
       "text": "Entering Main Menu",
       "file": "lens.main_menu.entry.wav",
-      "fingerprint": "9e248784596e60524a0a60965cfefbbcbdf46512812b04d00d8aa0ce58d90faf"
+      "fingerprint": "317c46ba9ccacbcf5df2fff919cc3407730087198bb8b7fee7e3c2b53becf56c"
     },
     {
       "id": "lens.finger_rays.entry",
       "type": "LensEntry",
+      "concatenate": false,
       "text": "Entering Finger Rays",
       "file": "lens.finger_rays.entry.wav",
-      "fingerprint": "d767dfc15fbdba324439d543fb6dbe0812d04de7594bd521c5cc170d7ea16ac2"
+      "fingerprint": "9811097f42e7a6739c31bb75d8f5425ffc33b04014a9e5e603d024856e0d9cfc"
     },
     {
       "id": "lens.system_settings.entry",
       "type": "LensEntry",
+      "concatenate": false,
       "text": "Entering System Settings",
       "file": "lens.system_settings.entry.wav",
-      "fingerprint": "9edcd308f35cec4d9a8c7951fb30824aa396dc79948a5baa0397114bafb2b5ff"
+      "fingerprint": "2946d9cfce84b13192c4180ecc3a623f60846171842a47002dc246d1769c475e"
     },
     {
       "id": "lens.quick_menu.entry",
       "type": "LensEntry",
+      "concatenate": false,
       "text": "Entering Quick menu",
       "file": "lens.quick_menu.entry.wav",
-      "fingerprint": "fcb5b9c7451ebcba7f7324d49eeaf6d5e41b07a37363988ea0cc7328fdc8980d"
+      "fingerprint": "e648d6e314891306f68c26cc5304ffda420808cb621ce0cd0cda16e6db331d1f"
     },
     {
       "id": "lens.main_menu.resume",
       "type": "LensEntry",
+      "concatenate": false,
       "text": "Resuming Main Menu",
       "file": "lens.main_menu.resume.wav",
-      "fingerprint": "1d4bdb6a4772a0f81be05dcc6248188f2062a6ae63d6184daf121065b0f59567"
+      "fingerprint": "b7318ad9829d3141638a8d65bf71b99c9315f8d9116ce9a7963bd2e67e658cd9"
     },
     {
       "id": "lens.finger_rays.resume",
       "type": "LensEntry",
+      "concatenate": false,
       "text": "Resuming Finger Rays",
       "file": "lens.finger_rays.resume.wav",
-      "fingerprint": "3017fbbd2f1e83e05a5ad4cb3b83f203eb9ee84140bbfc28149f24ac4cbd23b6"
+      "fingerprint": "b3bc31eee0d8d68b05ba06627e44b1d89863e8654157aae74ed34bc1b288c752"
     },
     {
       "id": "lens.system_settings.resume",
       "type": "LensEntry",
+      "concatenate": false,
       "text": "Resuming System Settings",
       "file": "lens.system_settings.resume.wav",
-      "fingerprint": "82118d4a22e07aec3f1d45c88e38d1a016ffbcbb2b03abf1cfbbd446b8ba0146"
+      "fingerprint": "0351d5d78df9331b07ef863467bbd40c24442798b38f283dbdb9868aee22b049"
     },
     {
       "id": "menu.option.finger_rays",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Finger Rays",
       "file": "menu.option.finger_rays.wav",
-      "fingerprint": "057dd043dd5cd171d5806b6e6edc2cfb3d5eebb54d3e47c50976262fc3d311e3"
+      "fingerprint": "052e9073a9ae39f3d215acf2f5d5c93d621024e1c528521930cb39a826d86734"
     },
     {
       "id": "menu.option.settings",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Settings",
       "file": "menu.option.settings.wav",
-      "fingerprint": "a2f177399ae3d9dbe60792721fd91f8263f8b948656ce43d22e130e4fe09129c"
+      "fingerprint": "db2a7fd34d4c99f596579aef5964f1407d2f4a102f4fadada337b999acdc3239"
     },
     {
       "id": "menu.option.help",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Help",
       "file": "menu.option.help.wav",
-      "fingerprint": "fb40486dd5ccdc7b8d1b33e0de9d4248a1f83696ac50b4794228c580cddf8ace"
+      "fingerprint": "db39462cf1ca655ad52e03d7bf47dc55d82a5fe59fe7288759df53ea659b659a"
     },
     {
       "id": "menu.option.close",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "[Close](/kl\u02c8Oz/) menu",
       "file": "menu.option.close.wav",
-      "fingerprint": "03550ee983338e8b8dcd33aa7b6ea9cb9a892aac82381ec708d321c203c49d7f"
+      "fingerprint": "cbfcc4bc2fb39573e286145cccc7effe2b20450687ca673aab54000a070831b0"
     },
     {
       "id": "menu.option.main_menu",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Main Menu",
       "file": "menu.option.main_menu.wav",
-      "fingerprint": "78fdf8d432181b7cd7eab1074eb6823afaceed5dcaa4b03404bd699edccec603"
+      "fingerprint": "d70c0ee1250e85ebe1ec3a8214cbdd480ce709adf98f2e01a703a3f3b7555b59"
     },
     {
       "id": "menu.option.lens_settings",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Lens settings",
       "file": "menu.option.lens_settings.wav",
-      "fingerprint": "87a33774f40b335ae57cb56fdcb6484dd1aa898fd092b72318fdb753478ca1a2"
+      "fingerprint": "7a20fc1a2cc3ccda1c170eb2f5ac2c0fee747fbf1a9b72130c86cd5f63ae72c5"
     },
     {
       "id": "menu.option.reset_defaults",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Reset all settings to defaults",
       "file": "menu.option.reset_defaults.wav",
-      "fingerprint": "f3efcac68571be5ed7192d0f79aeb89d0b9dd83951f4763fc3fa615c1bf8b575"
+      "fingerprint": "05170f3bd1d4aa062fce919a9c239e884561fad1c7918b8ce577bbb6a04250d8"
     },
     {
       "id": "menu.option.finish",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Finish settings",
       "file": "menu.option.finish.wav",
-      "fingerprint": "8a5f1f5bfc795972c2defd052db8ac8dcc669f201749967afb752eb3e79fdb9e"
+      "fingerprint": "dbd12fa55d3211b110160870d5eeb251c71e166c068bf2fc3cb35744a3d22b8e"
     },
     {
       "id": "menu.option.back",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Back",
       "file": "menu.option.back.wav",
-      "fingerprint": "5b859c27d1d545638556e49a5650641cc8628397af2bf1947d43804a522b1f80"
+      "fingerprint": "17ee88a3bec302112cd07d6a158a5d52196953b649943ca8905f0d1a6fc3768c"
     },
     {
       "id": "menu.option.save",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Save and leave",
       "file": "menu.option.save.wav",
-      "fingerprint": "6ecb61c7b75b2b9a53d3378789e218c80ae6050a84d0b3e2413446b3bb215ec3"
+      "fingerprint": "a7890a671b1464c8182aa5248300c7725f2ccd947cac123f035d157854a633c2"
     },
     {
       "id": "menu.option.continue",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Continue editing",
       "file": "menu.option.continue.wav",
-      "fingerprint": "6933bca80ca913b49dbf3cdd48cbd15b1dc4323ec84880814623cdbc121ecb45"
+      "fingerprint": "e36b2c45b65d1afb5217c64a2614d3fe50eff74c0557280c2af5744901af3b0d"
     },
     {
       "id": "menu.option.discard",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Discard changes",
       "file": "menu.option.discard.wav",
-      "fingerprint": "70d5e6749e8b72d117bcaa0453d09092f07421e7668e97780e1db2978e44c5ac"
+      "fingerprint": "6842f5477a39818e5a2cca7625bbd80597d88da1d128e723ca66635fc3b1bf01"
     },
     {
       "id": "menu.instructions",
       "type": "Instruction",
+      "concatenate": false,
       "text": "Move the joystick to slide through menu options. Press the button to select.",
       "file": "menu.instructions.wav",
-      "fingerprint": "91a7e19547b10254ea5a18b92b516605b10974e2955edfd01611c80849f09c22"
+      "fingerprint": "1a60e6db0f58e1add87c10bf149157a830788717ff32c66c2efc262de9414fa7"
     },
     {
       "id": "quick_menu.instructions",
       "type": "Instruction",
+      "concatenate": false,
       "text": "Move the joystick to slide through quick menu options. Press the button to select.",
       "file": "quick_menu.instructions.wav",
-      "fingerprint": "7aa6465676e5f09d3e32e8309078fca0426ba17ef72091bfb5cfdc1094fa5837"
+      "fingerprint": "00dbd4ec8a5c0ac4d6f858bd71ef711449fc630b69a040fcc7b3e54974e683fb"
     },
     {
       "id": "settings.instructions",
       "type": "Instruction",
+      "concatenate": false,
       "text": "Move the joystick to slide through options. Press the button to select.",
       "file": "settings.instructions.wav",
-      "fingerprint": "170b4fc95acd6c8962a609a6ebd40c5d6fcf024d4c8871bf071d6b126a4e613c"
+      "fingerprint": "2d3e38ce1a8f9023d4d94550c2fab4cd4d41a3cc2e3477ccf2d27c4d94c87119"
     },
     {
       "id": "settings.value.instructions",
       "type": "Instruction",
+      "concatenate": false,
       "text": "Move the joystick to choose a value. Press the button to accept.",
       "file": "settings.value.instructions.wav",
-      "fingerprint": "c940744f1b51310d2a4d350c26069c006afaa5c2d455f10952343e89840f5e2e"
+      "fingerprint": "e3f1585e872627f255d53729deb02c99829b8b548b4c2ae7d9312283fe7bcf8e"
     },
     {
       "id": "settings.review.instructions",
       "type": "Instruction",
+      "concatenate": false,
       "text": "Choose what to do with the changes. Press the button to select.",
       "file": "settings.review.instructions.wav",
-      "fingerprint": "552083393ac5cacfcd4d0a57939622d6f76d1de73b86f5e66a9e25f2738d78ca"
+      "fingerprint": "0293d402e1e61b55c588b7ffd8a95c2fedb94d7f1699deb0f2c45c4234b6d721"
     },
     {
       "id": "quick_menu.no_settings.instructions",
       "type": "Instruction",
+      "concatenate": false,
       "text": "This lens has no settings.",
       "file": "quick_menu.no_settings.instructions.wav",
-      "fingerprint": "d595587bda31c89a26bf7b38e73b82e2dc9cd464663d8def4fca821f5e0a9118"
+      "fingerprint": "b84eaf678911c81eb3f91e5a62fa0cb328f461118ca0e4a1034d04d1fa3d5bc8"
     },
     {
       "id": "settings.current_value",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "Current value",
       "file": "settings.current_value.wav",
-      "fingerprint": "1e1ea8114c99cc5dee021f565c076135b3c4e07063d30baf9118c1562321b8a0"
+      "fingerprint": "5452bfbf299d2a166a2d80a8a9572d983998c62fbd472b025b5f09daa3d1b3a1"
     },
     {
       "id": "settings.value.on",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "on.",
       "file": "settings.value.on.wav",
-      "fingerprint": "dca4e262eff0f92f18cc7f316f5106fa8b07ae1f340930aba80e22e7edd51918"
+      "fingerprint": "ec3b160d8d182ae50803a4e416fc452eae42971c9b0f7612bd9c850f6d561643"
     },
     {
       "id": "settings.value.off",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "off.",
       "file": "settings.value.off.wav",
-      "fingerprint": "0352f3df200e8a56f0696b09b0cb31fafdaf487a577d8d2978bd1bdf2d6e66da"
+      "fingerprint": "b2f72084e6641de2407f80a6efe550368f4723968bbeefbb294488ef468276e0"
     },
     {
       "id": "settings.value.true",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "true.",
       "file": "settings.value.true.wav",
-      "fingerprint": "dfb6d4f683b646bcce3f8715f072bda9fd6895b2fe5f5fa0a1298796d82ea4b4"
+      "fingerprint": "4c10c38b473e7c449841cdda66f8335dffe5f342f83ab3d701d1b86b020eff6c"
     },
     {
       "id": "settings.value.false",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "false.",
       "file": "settings.value.false.wav",
-      "fingerprint": "9ea2bc232f743a995ca455c97da44bd2ddc8b436a322ba16f400de45dbd85a7a"
+      "fingerprint": "e1dac72e4813b72b4ca4efed2681192b807693b7b41662b4d9bc0a37f247a3ee"
     },
     {
       "id": "settings.accepted",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "accepted.",
       "file": "settings.accepted.wav",
-      "fingerprint": "7300d31ba4582b5b0864fcdae75fc4ded707dca8ad24df806d10fb26852b2708"
+      "fingerprint": "1b5d5cc2f2c42b8e230ad04c21b8a5bf74c5840a335257715685739a3ccb2d8a"
     },
     {
       "id": "settings.label.menu_instructions",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "Menu instructions",
       "file": "settings.label.menu_instructions.wav",
-      "fingerprint": "315d4d70069eac390423f7ca194368fdd58b43c90362e2aa0cdbf28f5bfdae7e"
+      "fingerprint": "4c3bb1c3f794a079eef61a2e4f1ff58eacaf8facb3f2a9ffe5c428b6db309d25"
     },
     {
       "id": "settings.label.reverse_distance_mapping",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "Reverse distance mapping",
       "file": "settings.label.reverse_distance_mapping.wav",
-      "fingerprint": "ec185b6ad471a66c25daab1dbada325b3c316e79197593d87c32f1e673916ddb"
+      "fingerprint": "0d9ccf4de6486348a3bbda31ed919dd307a934541f386bdd0f208e1ea4c40b9a"
     },
     {
       "id": "settings.label.include_palm",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "Include palm",
       "file": "settings.label.include_palm.wav",
-      "fingerprint": "d4ad351d836fa49638fdfd8767035bd66497da94ce370d470e74234fd5548dd8"
+      "fingerprint": "8316c8af7941185bbf8aa4f220ff63240dc0b977ee5a2096102789dca598e67c"
     },
     {
       "id": "settings.label.ray_length_m",
       "type": "MenuOption",
+      "concatenate": true,
       "text": "Field distance",
       "file": "settings.label.ray_length_m.wav",
-      "fingerprint": "9a29d00adec99b1ff1c2c30df8f1f90c7fee0a24339b8a4d54c5444a9b123b98"
+      "fingerprint": "cda7c90c6c5169add35e51adfdbf3b961a4b28e87b6e87519899cea32134740a"
     }
   ]
 }

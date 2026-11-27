@@ -28,15 +28,15 @@
     {"id": "settings.value.instructions", "type": "Instruction", "text": "Move the joystick to choose a value. Press the button to accept."},
     {"id": "settings.review.instructions", "type": "Instruction", "text": "Choose what to do with the changes. Press the button to select."},
     {"id": "quick_menu.no_settings.instructions", "type": "Instruction", "text": "This lens has no settings."},
-    {"id": "settings.current_value", "type": "MenuOption", "text": "Current value"},
-    {"id": "settings.value.on", "type": "MenuOption", "text": "on."},
-    {"id": "settings.value.off", "type": "MenuOption", "text": "off."},
-    {"id": "settings.value.true", "type": "MenuOption", "text": "true."},
-    {"id": "settings.value.false", "type": "MenuOption", "text": "false."},
-    {"id": "settings.accepted", "type": "MenuOption", "text": "accepted."},
-    {"id": "settings.label.menu_instructions", "type": "MenuOption", "text": "Menu instructions"},
-    {"id": "settings.label.reverse_distance_mapping", "type": "MenuOption", "text": "Reverse distance mapping"},
-    {"id": "settings.label.include_palm", "type": "MenuOption", "text": "Include palm"},
-    {"id": "settings.label.ray_length_m", "type": "MenuOption", "text": "Field distance"}
+    {"id": "settings.current_value", "type": "MenuOption", "concatenate": true, "text": "Current value"},
+    {"id": "settings.value.on", "type": "MenuOption", "concatenate": true, "text": "on."},
+    {"id": "settings.value.off", "type": "MenuOption", "concatenate": true, "text": "off."},
+    {"id": "settings.value.true", "type": "MenuOption", "concatenate": true, "text": "true."},
+    {"id": "settings.value.false", "type": "MenuOption", "concatenate": true, "text": "false."},
+    {"id": "settings.accepted", "type": "MenuOption", "concatenate": true, "text": "accepted."},
+    {"id": "settings.label.menu_instructions", "type": "MenuOption", "concatenate": true, "text": "Menu instructions"},
+    {"id": "settings.label.reverse_distance_mapping", "type": "MenuOption", "concatenate": true, "text": "Reverse distance mapping"},
+    {"id": "settings.label.include_palm", "type": "MenuOption", "concatenate": true, "text": "Include palm"},
+    {"id": "settings.label.ray_length_m", "type": "MenuOption", "concatenate": true, "text": "Field distance"}
   ]
 }

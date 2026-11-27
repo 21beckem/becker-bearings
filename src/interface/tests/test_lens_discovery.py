@@ -84,7 +84,8 @@ class LensDiscoveryTests(unittest.TestCase):
         self.assertEqual(controller.active_lens.manifest.lens_id, "finger_rays")
 
         controller.update(None, HandInputState(timestamp_s=1.3))
-        controller.update(None, HandInputState(joystick=1.0, timestamp_s=2.0))
+        # Main Menu is the first quick-menu option.
+        controller.update(None, HandInputState(timestamp_s=2.0))
         controller.update(None, HandInputState(timestamp_s=2.1))
         controller.update(None, HandInputState(button_down=True, button_pressed=True,
                                                 timestamp_s=2.2))
@@ -104,8 +105,6 @@ class LensDiscoveryTests(unittest.TestCase):
         controller.update(None, HandInputState(timestamp_s=3.3))
         controller.update(None, HandInputState(joystick=1.0, timestamp_s=4.0))
         controller.update(None, HandInputState(timestamp_s=4.1))
-        controller.update(None, HandInputState(joystick=1.0, timestamp_s=5.0))
-        controller.update(None, HandInputState(timestamp_s=5.1))
         controller.update(None, HandInputState(button_down=True, button_pressed=True,
                                                 timestamp_s=5.2))
         self.assertIsNotNone(controller._quick_menu_editor)

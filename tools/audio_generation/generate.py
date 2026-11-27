@@ -63,7 +63,7 @@ def load_catalog(path):
     return catalog
 
 
-def generate_phrase(pipeline, text, voice, speed):
+def generate_phrase(pipeline, text, voice, speed, concatenate=False):
     import numpy as np
 
     chunks = []
@@ -79,22 +79,27 @@ def generate_phrase(pipeline, text, voice, speed):
             chunks.append(np.asarray(audio))
     if not chunks:
         raise RuntimeError(f"Kokoro produced no audio for {text!r}")
-    return trim_silence(np.concatenate(chunks))
+    return trim_silence(np.concatenate(chunks), concatenate=concatenate)
 
 
-def trim_silence(audio):
-    """Remove Kokoro's long boundary pauses while preserving a short buffer."""
+def trim_silence(audio, concatenate=False):
+    """Trim leading silence, and trailing silence for composed audio parts."""
     import numpy as np
 
     active = np.flatnonzero(np.abs(audio) >= TRIM_THRESHOLD)
     if active.size == 0:
         return audio
     start = max(0, int(active[0]) - TRIM_PADDING_SAMPLES)
-    end = min(len(audio), int(active[-1]) + 1 + TRIM_PADDING_SAMPLES)
+    end = (
+        min(len(audio), int(active[-1]) + 1 + TRIM_PADDING_SAMPLES)
+        if concatenate else len(audio)
+    )
     return audio[start:end]
 
 
 def main():
+    if hasattr(sys.stdout, "reconfigure"):
+        sys.stdout.reconfigure(errors="replace")
     args = parse_args()
     catalog_path = args.catalog.resolve()
     catalog = load_catalog(catalog_path)
@@ -106,6 +111,11 @@ def main():
 
     output_dir = (args.output or Path(__file__).parents[2] / "src" / "assets" / "audio").resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
+    expected_files = {f"{phrase['id']}.wav" for phrase in catalog["phrases"]}
+    for existing in output_dir.glob("*.wav"):
+        if existing.name not in expected_files:
+            existing.unlink()
+            print(f"Removing stale {existing.name}")
     manifest_path = output_dir / "manifest.json"
     old_manifest = {}
     if manifest_path.exists() and not args.force:
@@ -136,6 +146,7 @@ def main():
                     "voice": voice,
                     "speed": speed,
                     "audio_processing": AUDIO_PROCESSING_VERSION,
+                    "concatenate": bool(phrase.get("concatenate", False)),
                 },
                 sort_keys=True,
             ).encode("utf-8")
@@ -149,11 +160,15 @@ def main():
             print(f"Keeping {filename}")
         else:
             print(f"Generating {filename}: {text}")
-            audio = generate_phrase(pipeline, text, voice, speed)
+            audio = generate_phrase(
+                pipeline, text, voice, speed,
+                concatenate=bool(phrase.get("concatenate", False)),
+            )
             sf.write(destination, audio, SAMPLE_RATE, subtype="PCM_16", format="WAV")
         entries.append({
             "id": phrase_id,
             "type": phrase.get("type", ""),
+            "concatenate": bool(phrase.get("concatenate", False)),
             "text": text,
             "file": filename,
             "fingerprint": fingerprint,

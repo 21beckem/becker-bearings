@@ -102,6 +102,7 @@ Each phrase needs a stable ID and the exact text to synthesize:
     {
       "id": "menu.settings",
       "type": "MenuOption",
+      "concatenate": false,
       "text": "Settings"
     }
   ]
@@ -110,6 +111,11 @@ Each phrase needs a stable ID and the exact text to synthesize:
 
 `type` is one of `LensEntry`, `MenuOption`, `Instruction`, or `Error`. It is
 copied into the generated manifest so each recording retains its queue type.
+
+Set `concatenate` to `true` for clips that will be played directly beside
+other clips, such as settings audio parts. Those clips have both leading and
+trailing silence trimmed. Standalone clips default to `false`: only leading
+silence is trimmed, preserving a small natural pause after the message.
 
 `language: "a"` is American English. The voice and language must match. IDs
 may contain letters, numbers, periods, hyphens, and underscores; they become
