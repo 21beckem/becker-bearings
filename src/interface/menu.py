@@ -28,6 +28,7 @@ class MenuItem:
     select: object = None
     tactile_state: TactileState = TactileState.OFF
     audio_parts_provider: object = None
+    value_prefix: str = "Current value:"
 
     def value_text(self):
         if self.value_provider is None:
@@ -123,7 +124,7 @@ class MenuNavigator:
         item = self.current
         lines = [item.label]
         if item.value_text():
-            lines.append(f"Current value: {item.value_text()}")
+            lines.append(self._value_phrase(item))
         if item.description:
             lines.append(item.description)
         return lines
@@ -132,7 +133,8 @@ class MenuNavigator:
         item = self.current
         text = item.label
         if item.value_text():
-            text += f". Current value: {item.value_text()}"
+            separator = " " if item.value_prefix == "currently" else ". "
+            text += separator + self._value_phrase(item)
         if include_instructions:
             requests = list(self.instruction_speech())
             requests.append(SpeechRequest(
@@ -152,6 +154,10 @@ class MenuNavigator:
             audio_parts=item.audio_parts(),
         )]
         return tuple(requests)
+
+    @staticmethod
+    def _value_phrase(item):
+        return f"{item.value_prefix} {item.value_text()}"
 
     def instruction_speech(self):
         return (SpeechRequest(

@@ -12,9 +12,7 @@ SYSTEM_SETTINGS = (
         label="Menu instructions",
         value_type="bool",
         default=True,
-        description="Speak navigation instructions when entering menus.",
-        choices=(False, True),
-        choice_labels=("off", "on"),
+        description="Provides spoken navigation instructions when entering menus.",
         label_audio_key="settings.label.menu_instructions",
     ),
 )
@@ -65,6 +63,11 @@ class SettingsRegistry:
         self._values[scope_id] = {
             spec.key: spec.default for spec in self.specs(scope_id)
         }
+
+    def commit_defaults(self, scope_id):
+        """Reset one scope and persist the reset immediately."""
+        self.reset_scope(scope_id)
+        self.save()
 
     def commit(self, scope_id, values):
         allowed = {spec.key for spec in self.specs(scope_id)}

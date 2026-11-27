@@ -68,6 +68,8 @@ class SpeechPart:
 
     text: str
     clip_id: str = ""
+    # When false, missing generated audio is not replaced with runtime TTS.
+    allow_tts: bool = True
 
 
 @dataclass(frozen=True)
@@ -81,6 +83,7 @@ class SpeechRequest:
     error_key: str = ""
     play_after_instructions: bool = False
     audio_parts: tuple[SpeechPart, ...] = ()
+    blocks_tactile: bool = False
 
 
 @dataclass(frozen=True)

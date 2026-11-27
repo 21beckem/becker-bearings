@@ -390,6 +390,10 @@ class AudioService:
                     if (clip_id and self.clip_player is not None and
                             self.clip_player.play_clip(clip_id, False)):
                         continue
+                    if not part.allow_tts:
+                        debug("audio_clip_required_missing clip_id=%s text=%r",
+                              clip_id, part.text)
+                        continue
                     self.backend.speak(part.text, interrupt=False)
                 debug("audio_worker_backend_return text=%r", message.text)
             except Exception as error:

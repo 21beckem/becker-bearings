@@ -26,6 +26,7 @@ Every request to the audio system represents one complete utterance.
 | `lens_id` | The lens that owns the message, when applicable. Used to clear stale non-error messages on lens switches. |
 | `error_key` | Required for `Error`; identifies the underlying error for deduplication. |
 | `clip_id` | Optional generated-audio asset ID. For a generated clip, the clip must contain exactly the complete `text`. |
+| `blocks_tactile` | When true, the grip is silenced until this message finishes playing. |
 
 The four message types are intentionally small and are the only queue-policy
 types for now.
@@ -87,6 +88,10 @@ settings.value.on
 The queue treats that sequence as one message for interruption and replacement
 purposes. Fixed labels and common finite values use generated clips; dynamic
 values such as numbers use TTS for only that part.
+
+Setting descriptions use a clip-only audio part. They are generated from the
+audio catalog and deliberately do not fall back to runtime TTS if the clip is
+missing; this keeps the `Hear what <setting> does` action predictable.
 
 ## Priority and interruption
 

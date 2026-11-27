@@ -5,8 +5,8 @@ from pathlib import Path
 from uuid import uuid4
 
 from interface.contracts import (
-    HandInputState, SettingSpec, SpeechCategory, SpeechMessageType,
-    TactileState,
+    HandInputState, LensOutput, SettingSpec, SpeechCategory,
+    SpeechMessageType, SpeechRequest, TactileFrame, TactileState,
 )
 from interface.menu import MenuItem, MenuNavigator, MenuStack
 from interface.settings import SettingsRegistry
@@ -159,11 +159,11 @@ class MenuSettingsTests(unittest.TestCase):
         self.assertEqual(menu.current.key, "a")
         self.assertEqual(wrapped.speech[0].text, "Alpha")
 
-    def test_settings_are_staged_until_save(self):
+    def test_settings_apply_immediately_after_confirmation(self):
         registry = SettingsRegistry()
         registry.register_scope("test", (
-            SettingSpec("enabled", "Enabled", "bool", False, choices=(False, True),
-                        choice_labels=("off", "on")),
+            SettingSpec("enabled", "Enabled", "bool", False,
+                        description="Controls the test setting."),
         ))
         target = SettingsTarget("test", "Test Settings", registry)
         editor = SettingsEditor(target)
@@ -171,22 +171,138 @@ class MenuSettingsTests(unittest.TestCase):
         editor.update(None, HandInputState())
         editor.update(None, HandInputState(button_pressed=True))
         editor.update(None, HandInputState(joystick=1.0, timestamp_s=1.0))
-        editor.update(None, HandInputState(button_pressed=True, timestamp_s=2.0))
+        confirmation = editor.update(
+            None, HandInputState(button_pressed=True, timestamp_s=2.0)
+        )
         self.assertFalse(registry.get("test", "enabled"))
-        self.assertEqual(editor.transaction.get("enabled"), True)
+        self.assertEqual(confirmation.speech[0].text,
+                         "Change enabled from off to on?")
 
-        editor.update(None, HandInputState(joystick=1.0, timestamp_s=3.0))
-        editor.update(None, HandInputState(joystick=1.0, timestamp_s=4.0))
-        editor.update(None, HandInputState(button_pressed=True, timestamp_s=5.0))
-        editor.update(None, HandInputState(button_pressed=True, timestamp_s=6.0))
+        result = editor.update(
+            None, HandInputState(button_pressed=True, timestamp_s=4.0)
+        )
         self.assertTrue(registry.get("test", "enabled"))
+        self.assertEqual(result.speech[0].text,
+                         "Enabled changed from off to on.")
+        self.assertEqual(editor.update(None, HandInputState()).speech, ())
+        self.assertEqual(
+            editor.update(None, HandInputState()).speech[0].text,
+            "Enabled currently on",
+        )
+
+    def test_cancel_keeps_setting_unchanged(self):
+        registry = SettingsRegistry()
+        registry.register_scope("test", (
+            SettingSpec("enabled", "Enabled", "bool", False),
+        ))
+        editor = SettingsEditor(SettingsTarget("test", "Test Settings", registry))
+
+        editor.update(None, HandInputState())
+        editor.update(None, HandInputState(button_pressed=True))
+        editor.update(None, HandInputState(joystick=1.0, timestamp_s=1.0))
+        editor.update(None, HandInputState(button_pressed=True, timestamp_s=2.0))
+        editor.update(None, HandInputState(joystick=-1.0, timestamp_s=2.5))
+        editor.update(None, HandInputState(button_pressed=True, timestamp_s=3.0))
+
+        self.assertFalse(registry.get("test", "enabled"))
+        self.assertIn("Edit canceled", editor._last_output.speech[0].text)
+        self.assertEqual(editor.update(None, HandInputState()).speech, ())
+        self.assertEqual(
+            editor.update(None, HandInputState()).speech[0].text,
+            "Enabled currently off",
+        )
+
+    def test_info_action_requires_a_generated_clip(self):
+        registry = SettingsRegistry()
+        registry.register_scope("test", (
+            SettingSpec("enabled", "Enabled", "bool", False,
+                        description="Controls the test setting."),
+        ))
+        editor = SettingsEditor(SettingsTarget("test", "Test Settings", registry))
+
+        editor.update(None, HandInputState())
+        editor.update(None, HandInputState(button_pressed=True))
+        editor.update(None, HandInputState(joystick=1.0, timestamp_s=1.0))
+        editor.update(None, HandInputState(joystick=1.0, timestamp_s=2.0))
+        info_output = editor.update(
+            None, HandInputState(button_pressed=True, timestamp_s=3.0)
+        )
+
+        info = info_output.speech[0]
+        self.assertEqual(info.text, "Controls the test setting.")
+        self.assertFalse(info.audio_parts[0].allow_tts)
+        self.assertEqual(
+            info.audio_parts[0].clip_id,
+            "settings.info.test.enabled.description",
+        )
+
+    def test_setting_actions_use_generated_audio_parts(self):
+        registry = SettingsRegistry()
+        registry.register_scope("test", (
+            SettingSpec("enabled", "Enabled", "bool", False),
+        ))
+        editor = SettingsEditor(SettingsTarget("test", "Test Settings", registry))
+
+        editor.update(None, HandInputState())
+        editor.update(None, HandInputState(button_pressed=True))
+        leave = editor.edit_menu.current.audio_parts()
+        self.assertEqual(
+            [part.clip_id for part in leave],
+            ["settings.action.leave.off"],
+        )
+        self.assertTrue(all(not part.allow_tts for part in leave))
+
+        turned_on = editor.update(
+            None, HandInputState(joystick=1.0, timestamp_s=1.0)
+        ).speech[0]
+        self.assertEqual(
+            [part.clip_id for part in turned_on.audio_parts],
+            ["settings.action.turn.on"],
+        )
+
+    def test_boolean_values_are_spoken_as_on_and_off(self):
+        spec = SettingSpec(
+            "enabled", "Enabled", "bool", False,
+        )
+        self.assertEqual(SettingsEditor._format(spec, False), "off")
+        self.assertEqual(SettingsEditor._format(spec, True), "on")
+
+    def test_setting_result_blocks_tactile_feedback_until_audio_finishes(self):
+        class BlockingAudio:
+            def __init__(self):
+                self.active = set()
+
+            def speak(self, text, **kwargs):
+                self.active.add(kwargs["message_id"])
+
+            def has_message(self, message_id):
+                return message_id in self.active
+
+            def close(self):
+                pass
+
+        audio = BlockingAudio()
+        controller = LensController(tactile=ScreenTactileOutput(), audio=audio)
+        try:
+            output = controller._deliver(LensOutput(
+                tactile=TactileFrame((TactileState.HIGH,) * 20),
+                speech=(SpeechRequest(
+                    "Setting updated.",
+                    message_id="settings.updated",
+                    message_type=SpeechMessageType.MENU_OPTION,
+                    lens_id="test",
+                    blocks_tactile=True,
+                ),),
+            ))
+            self.assertEqual(output.tactile, TactileFrame.off())
+        finally:
+            controller.close()
 
     def test_settings_menu_option_uses_reusable_audio_parts(self):
         registry = SettingsRegistry()
         registry.register_scope("test", (
             SettingSpec(
                 "enabled", "Enabled", "bool", True,
-                choices=(False, True), choice_labels=("off", "on"),
                 label_audio_key="settings.label.enabled",
             ),
         ))

@@ -207,8 +207,13 @@ class LensController:
             request for request in output.speech
             if request.message_type == SpeechMessageType.LENS_ENTRY
         ]
-        if entry_requests:
-            self._entry_barrier_id = entry_requests[-1].message_id
+        tactile_blocking_requests = [
+            request for request in output.speech
+            if request.blocks_tactile
+        ]
+        barrier_requests = entry_requests + tactile_blocking_requests
+        if barrier_requests:
+            self._entry_barrier_id = barrier_requests[-1].message_id
         if self._entry_barrier_id is not None:
             output = self._silenced(output)
         elif self._tactile_animation is not None:

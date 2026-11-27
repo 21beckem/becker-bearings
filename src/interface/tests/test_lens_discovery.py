@@ -218,7 +218,7 @@ class LensDiscoveryTests(unittest.TestCase):
         self.assertEqual(settings_output.tactile.points[5], TactileState.HIGH)
 
         editor = controller._quick_menu_editor
-        editor._open_value(editor.target.registry.specs("settings_capable")[0])
+        editor._open_setting(editor.target.registry.specs("settings_capable")[0])
         value_output = controller.update(None, HandInputState())
         self.assertEqual(value_output.tactile.points[1], TactileState.LOW)
         self.assertEqual(value_output.tactile.points[5], TactileState.LOW)
@@ -260,7 +260,6 @@ class _SettingsCapableLens(Lens):
         "settings_capable", "Settings Capable", "",
         settings=(SettingSpec(
             "enabled", "Enabled", "bool", False,
-            choices=(False, True), choice_labels=("off", "on"),
         ),),
     )
 
