@@ -18,6 +18,23 @@ must contain exactly `point-00` through `point-19`, each with `cx` and `cy`
 attributes. Pressing the button in the main-menu lens announces the selected
 point through the audio service.
 
+## Tactile animations
+
+Lenses can play a one-shot animation through their context. The animation is
+rendered over the lens's current tactile frame and is sent to both the screen
+preview and the physical grip:
+
+```python
+from interface.tactile_animation import RippleAnimation, WaveAnimation
+
+self.context.play_tactile(RippleAnimation(origin="center-center"))
+self.context.play_tactile(WaveAnimation(origin="bottom-right"))
+```
+
+Named origins use the nearest physical point from `grip.svg`, so they work
+with the grip's irregular geometry. Starting another animation replaces the
+current one; `context.controller.stop_tactile()` cancels it explicitly.
+
 If `src/assets/audio/manifest.json` is present, the audio service preloads its
 generated WAV clips through Qt Multimedia and plays exact phrase matches
 immediately. Speech without a matching clip continues through the existing

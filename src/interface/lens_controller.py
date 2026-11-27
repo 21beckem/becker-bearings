@@ -14,6 +14,7 @@ from .contracts import (
 )
 from .settings import LensContext, SettingsRegistry, SYSTEM_SETTINGS
 from .tactile import ScreenTactileOutput
+from .tactile_animation import TactileAnimation
 from .menu import MENU_TACTILE_MODES, MenuItem, MenuNavigator, MenuStack
 from .settings_editor import SettingsEditor, SettingsTarget
 from .debug import debug
@@ -46,10 +47,21 @@ class LensController:
         self._menu_prefix = ()
         self._quick_menu_root = None
         self._entry_barrier_id = None
+        self._tactile_animation = None
 
     @property
     def active_lens(self):
         return self._active
+
+    def play_tactile(self, animation):
+        """Play a one-shot animation over the next delivered tactile frames."""
+        if not isinstance(animation, TactileAnimation):
+            raise TypeError("animation must be a TactileAnimation")
+        self._tactile_animation = animation
+
+    def stop_tactile(self):
+        """Cancel the current tactile animation, if any."""
+        self._tactile_animation = None
 
     def has_lens(self, lens_id):
         return lens_id in self._factories
@@ -69,6 +81,7 @@ class LensController:
             raise KeyError(f"Unknown lens {lens_id!r}")
         if self._active is not None:
             self._active.destroy()
+        self.stop_tactile()
         self._active = self._factories[lens_id]()
         self._menu_prefix = tuple(menu_prefix)
         self.settings.register(self._active.manifest)
@@ -198,6 +211,13 @@ class LensController:
             self._entry_barrier_id = entry_requests[-1].message_id
         if self._entry_barrier_id is not None:
             output = self._silenced(output)
+        elif self._tactile_animation is not None:
+            animation = self._tactile_animation
+            now = monotonic()
+            animated_frame = animation.frame_at(now, output.tactile)
+            if animation.finished(now):
+                self._tactile_animation = None
+            output = replace(output, tactile=animated_frame)
         self.tactile.send(output.tactile)
         for request in output.speech:
             instructions_enabled = self.settings.get("system", "menu_instructions")

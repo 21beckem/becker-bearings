@@ -19,7 +19,7 @@ class LensDiscoveryTests(unittest.TestCase):
         factories = list(discover_lenses(ROOT / "lenses"))
         self.assertEqual(
             [factory.manifest.lens_id for factory in map(lambda f: f(), factories)],
-            ["finger_rays", "main_menu"],
+            ["animator", "finger_rays", "main_menu"],
         )
 
     def test_main_menu_uses_slider_navigation_and_selects_on_button(self):
@@ -66,7 +66,7 @@ class LensDiscoveryTests(unittest.TestCase):
             [
                 "Entering Main Menu",
                 "Move the joystick to slide through menu options. Press the button to select.",
-                "Finger Rays",
+                "Animator",
             ],
         )
 

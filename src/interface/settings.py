@@ -123,3 +123,9 @@ class LensContext:
         self.settings = settings
         self.audio = audio
         self.controller = controller
+
+    def play_tactile(self, animation):
+        """Start a tactile animation on the shared screen/hardware output."""
+        if self.controller is None:
+            raise RuntimeError("tactile animations require a lens controller")
+        self.controller.play_tactile(animation)

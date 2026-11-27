@@ -26,6 +26,14 @@
       "fingerprint": "9811097f42e7a6739c31bb75d8f5425ffc33b04014a9e5e603d024856e0d9cfc"
     },
     {
+      "id": "lens.animator.entry",
+      "type": "LensEntry",
+      "concatenate": false,
+      "text": "Entering Animator",
+      "file": "lens.animator.entry.wav",
+      "fingerprint": "4345c5aff48acf53b89eaec6d78bd786e6df93f1f2dde39a1c070485f588187c"
+    },
+    {
       "id": "lens.system_settings.entry",
       "type": "LensEntry",
       "concatenate": false,
@@ -58,6 +66,14 @@
       "fingerprint": "b3bc31eee0d8d68b05ba06627e44b1d89863e8654157aae74ed34bc1b288c752"
     },
     {
+      "id": "lens.animator.resume",
+      "type": "LensEntry",
+      "concatenate": false,
+      "text": "Resuming Animator",
+      "file": "lens.animator.resume.wav",
+      "fingerprint": "a214a95537b8d6af9f254a24bdf2b1291d493cf13d3f4b0644f3f5cf5b6ec656"
+    },
+    {
       "id": "lens.system_settings.resume",
       "type": "LensEntry",
       "concatenate": false,
@@ -72,6 +88,54 @@
       "text": "Finger Rays",
       "file": "menu.option.finger_rays.wav",
       "fingerprint": "052e9073a9ae39f3d215acf2f5d5c93d621024e1c528521930cb39a826d86734"
+    },
+    {
+      "id": "menu.option.animator",
+      "type": "MenuOption",
+      "concatenate": false,
+      "text": "Animator",
+      "file": "menu.option.animator.wav",
+      "fingerprint": "e965bb096c7a848d8ce7155510886f4c59691e4788f06434037b04cff760fad1"
+    },
+    {
+      "id": "menu.option.animator.ripple_center",
+      "type": "MenuOption",
+      "concatenate": false,
+      "text": "Ripple from center",
+      "file": "menu.option.animator.ripple_center.wav",
+      "fingerprint": "31bfd78b459bb4657912ac80adb25331d1ed0079b824dc462a9b1da2f1e91d89"
+    },
+    {
+      "id": "menu.option.animator.wave_bottom_right",
+      "type": "MenuOption",
+      "concatenate": false,
+      "text": "Wave from bottom right",
+      "file": "menu.option.animator.wave_bottom_right.wav",
+      "fingerprint": "877d2d5bca2ba7de8b2f9e362708a40f5a00ff81dbceb0f206654de1d1364d2f"
+    },
+    {
+      "id": "menu.option.animator.ripple_top_left",
+      "type": "MenuOption",
+      "concatenate": false,
+      "text": "Ripple from top left",
+      "file": "menu.option.animator.ripple_top_left.wav",
+      "fingerprint": "3666deab25574bad3981eb4a442177e6bb8520a1acb8717733490b485747bb34"
+    },
+    {
+      "id": "menu.option.animator.ripple_top_right",
+      "type": "MenuOption",
+      "concatenate": false,
+      "text": "Ripple from top right",
+      "file": "menu.option.animator.ripple_top_right.wav",
+      "fingerprint": "b8fec4af6a41a68ad7a8217a1f939ab913b1e16f14bda22c837b5b5a39987beb"
+    },
+    {
+      "id": "menu.option.animator.ripple_bottom_left",
+      "type": "MenuOption",
+      "concatenate": false,
+      "text": "Ripple from bottom left",
+      "file": "menu.option.animator.ripple_bottom_left.wav",
+      "fingerprint": "3dfd4f969e424d703ebc69673309f88260965371934248a727b44977afaa53ad"
     },
     {
       "id": "menu.option.settings",
@@ -200,6 +264,14 @@
       "text": "Choose what to do with the changes. Press the button to select.",
       "file": "settings.review.instructions.wav",
       "fingerprint": "0293d402e1e61b55c588b7ffd8a95c2fedb94d7f1699deb0f2c45c4234b6d721"
+    },
+    {
+      "id": "animator.instructions",
+      "type": "Instruction",
+      "concatenate": false,
+      "text": "Move the joystick to choose an animation. Press the button to play it.",
+      "file": "animator.instructions.wav",
+      "fingerprint": "6470c4fd516c4de745bd61e564415d9405a09391982d5791d5dc3295ed82952c"
     },
     {
       "id": "quick_menu.no_settings.instructions",
