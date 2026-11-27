@@ -27,7 +27,9 @@ class MainMenuLens(Lens):
             ))
         items.append(MenuItem(
             "settings", "Settings", "Edit overall device settings.",
-            select=lambda: controller.start("system_settings"),
+            select=lambda: controller.start(
+                "system_settings", menu_prefix=(self.menu,)
+            ),
         ))
         items.append(MenuItem(
             "help", "Help", "Repeat menu instructions.",

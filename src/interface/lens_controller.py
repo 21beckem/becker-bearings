@@ -10,16 +10,18 @@ from time import monotonic
 from .audio import AudioService
 from .contracts import (
     Lens, LensOutput, SpeechCategory, SpeechMessageType, SpeechRequest,
+    TactileFrame,
 )
 from .settings import LensContext, SettingsRegistry, SYSTEM_SETTINGS
 from .tactile import ScreenTactileOutput
-from .menu import MenuItem, MenuNavigator
+from .menu import MENU_TACTILE_MODES, MenuItem, MenuNavigator, MenuStack
 from .settings_editor import SettingsEditor, SettingsTarget
 from .debug import debug
 
 
 class LensController:
-    def __init__(self, tactile=None, audio=None, settings=None):
+    def __init__(self, tactile=None, audio=None, settings=None,
+                 interface_config=None):
         self.tactile = tactile or ScreenTactileOutput()
         self.audio = audio or AudioService()
         self.settings = settings or SettingsRegistry()
@@ -35,6 +37,15 @@ class LensController:
         self._quick_menu_editor = None
         self._quick_menu_notice = ()
         self._pending_entry_speech = None
+        interface_config = interface_config or {}
+        self._menu_tactile_mode = interface_config.get(
+            "menu_layer_tactile_mode", "trinary_ancestors_low"
+        )
+        if self._menu_tactile_mode not in MENU_TACTILE_MODES:
+            self._menu_tactile_mode = "trinary_ancestors_low"
+        self._menu_prefix = ()
+        self._quick_menu_root = None
+        self._entry_barrier_id = None
 
     @property
     def active_lens(self):
@@ -53,12 +64,13 @@ class LensController:
         for lens_factory in discover_lenses(directory):
             self.register(lens_factory)
 
-    def start(self, lens_id):
+    def start(self, lens_id, menu_prefix=()):
         if lens_id not in self._factories:
             raise KeyError(f"Unknown lens {lens_id!r}")
         if self._active is not None:
             self._active.destroy()
         self._active = self._factories[lens_id]()
+        self._menu_prefix = tuple(menu_prefix)
         self.settings.register(self._active.manifest)
         # A lens switch may happen while the selecting button is still held.
         # Do not carry that physical state into the new lens or its shortcut.
@@ -75,6 +87,11 @@ class LensController:
     def update(self, snapshot, input_state):
         if self._active is None:
             return self.last_output
+        if self._entry_barrier_active():
+            self._previous_button_pressed = input_state.button_pressed
+            output = self._silenced(self.last_output)
+            self.tactile.send(output.tactile)
+            return output
         pressed = input_state.button_pressed and not self._previous_button_pressed
         self._previous_button_pressed = input_state.button_pressed
         normalized_input = replace(input_state, button_pressed=pressed)
@@ -160,6 +177,27 @@ class LensController:
         return output
 
     def _deliver(self, output):
+        layers = list(self._menu_prefix)
+        if self._quick_menu_root is not None:
+            layers.append(self._quick_menu_root)
+        for layer in output.menu_layers:
+            if not any(layer is existing for existing in layers):
+                layers.append(layer)
+        if layers:
+            output = replace(
+                output,
+                tactile=MenuStack(
+                    layers, tactile_mode=self._menu_tactile_mode
+                ).frame(),
+            )
+        entry_requests = [
+            request for request in output.speech
+            if request.message_type == SpeechMessageType.LENS_ENTRY
+        ]
+        if entry_requests:
+            self._entry_barrier_id = entry_requests[-1].message_id
+        if self._entry_barrier_id is not None:
+            output = self._silenced(output)
         self.tactile.send(output.tactile)
         for request in output.speech:
             instructions_enabled = self.settings.get("system", "menu_instructions")
@@ -185,11 +223,25 @@ class LensController:
         self.last_output = output
         return output
 
+    @staticmethod
+    def _silenced(output):
+        return replace(output, tactile=TactileFrame.off())
+
+    def _entry_barrier_active(self):
+        if self._entry_barrier_id is None:
+            return False
+        has_message = getattr(self.audio, "has_message", None)
+        if has_message is None or not has_message(self._entry_barrier_id):
+            self._entry_barrier_id = None
+            return False
+        return True
+
     def _open_quick_menu(self):
         self._pending_entry_speech = self._entry_speech(
             "Entering Quick menu", "lens.quick_menu.entry", "quick_menu"
         )
         self._quick_menu_lens_id = self._active.manifest.lens_id
+        self._quick_menu_root = None
         self._quick_menu_editor = None
         self._quick_menu_notice = ()
         self._quick_menu = MenuNavigator(
@@ -234,6 +286,7 @@ class LensController:
                 self.settings,
                 on_leave=self._close_quick_menu,
             )
+            self._quick_menu_root = self._quick_menu
             self._quick_menu = None
             self._quick_menu_editor = SettingsEditor(target)
 
@@ -247,6 +300,7 @@ class LensController:
             )
         self._quick_menu = None
         self._quick_menu_editor = None
+        self._quick_menu_root = None
         self._quick_menu_lens_id = None
 
     def close(self):

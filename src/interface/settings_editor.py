@@ -1,6 +1,6 @@
 """Reusable settings editor built on the tactile menu navigator."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from .contracts import (
     Lens, LensManifest, LensOutput, SettingSpec, SpeechCategory,
@@ -133,6 +133,20 @@ class SettingsEditor:
             self.value_menu.enter()
             self.state = self.VALUE
         else:
+            self.value_menu = MenuNavigator(
+                spec.label,
+                [MenuItem(
+                    "value", spec.label,
+                    value_provider=lambda: self._format(
+                        spec, self.transaction.get(spec.key)
+                    ),
+                )],
+                instructions=(
+                    "Move the joystick to choose a value.",
+                    "Press the button to accept.",
+                ),
+                instruction_id="settings.value.instructions",
+            )
             self.state = self.VALUE
 
     def _choose_value(self, value):
@@ -161,7 +175,8 @@ class SettingsEditor:
                 speech = getattr(self, "_accepted_speech", ())
                 self._accepted_speech = ()
                 return self.menu.output(MenuResultCompat(speech), header_text=self.menu.title)
-            return self.value_menu.output(result)
+            output = self.value_menu.output(result)
+            return replace(output, menu_layers=(self.menu, self.value_menu))
 
         direction = self.menu._direction(input_state)
         if direction:
@@ -187,7 +202,8 @@ class SettingsEditor:
         if input_state.button_pressed:
             self.state = self.LIST
             self.menu._announce = True
-        return self.menu.output(MenuResultCompat(speech), header_text=spec.label)
+        output = self.menu.output(MenuResultCompat(speech), header_text=spec.label)
+        return replace(output, menu_layers=(self.menu, self.value_menu))
 
     def _reset_all(self):
         self.transaction.reset()
@@ -221,7 +237,10 @@ class SettingsEditor:
         if result.selected is not None and result.selected.select:
             result.selected.select()
         if self.state == self.REVIEW:
-            return self.review_menu.output(MenuResultCompat(speech), header_text="Review changes")
+            output = self.review_menu.output(
+                MenuResultCompat(speech), header_text="Review changes"
+            )
+            return replace(output, menu_layers=(self.menu, self.review_menu))
         return self._last_output
 
     def _change_summary(self):

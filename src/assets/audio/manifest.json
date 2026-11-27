@@ -213,9 +213,9 @@
       "id": "settings.current_value",
       "type": "MenuOption",
       "concatenate": true,
-      "text": "Current value",
+      "text": "Currently",
       "file": "settings.current_value.wav",
-      "fingerprint": "5452bfbf299d2a166a2d80a8a9572d983998c62fbd472b025b5f09daa3d1b3a1"
+      "fingerprint": "923717f62382fefb310fcb490c52e2ba81a0cb10dda350b66eccd839689ef445"
     },
     {
       "id": "settings.value.on",

@@ -6,9 +6,9 @@ from uuid import uuid4
 
 from interface.contracts import (
     HandInputState, SettingSpec, SpeechCategory, SpeechMessageType,
+    TactileState,
 )
-from interface.menu import MenuItem, MenuNavigator
-from interface.menu import MenuItem, MenuNavigator
+from interface.menu import MenuItem, MenuNavigator, MenuStack
 from interface.settings import SettingsRegistry
 from interface.settings_editor import SettingsEditor, SettingsTarget
 from interface.audio import AudioService, NullSpeechBackend, SpeechBackend
@@ -17,6 +17,44 @@ from interface.tactile import ScreenTactileOutput
 
 
 class MenuSettingsTests(unittest.TestCase):
+    def test_menu_stack_places_parent_and_current_layers_in_columns(self):
+        parent = MenuNavigator(
+            "Parent", [MenuItem("a", "A"), MenuItem("b", "B")],
+        )
+        parent.index = 1
+        current = MenuNavigator(
+            "Current", [MenuItem("x", "X"), MenuItem("y", "Y")],
+        )
+        current.index = 0
+
+        frame = MenuStack((parent, current), "trinary_ancestors_low").frame()
+
+        self.assertEqual(frame.points[1], TactileState.LOW)
+        self.assertEqual(frame.points[5], TactileState.HIGH)
+
+    def test_menu_stack_supports_binary_and_current_only_modes(self):
+        parent = MenuNavigator("Parent", [MenuItem("a", "A")])
+        current = MenuNavigator("Current", [MenuItem("x", "X")])
+
+        binary = MenuStack((parent, current), "binary_ancestors_high").frame()
+        current_only = MenuStack((parent, current), "current_only").frame()
+
+        self.assertEqual(binary.points[0], TactileState.HIGH)
+        self.assertEqual(binary.points[5], TactileState.HIGH)
+        self.assertEqual(current_only.points[0], TactileState.OFF)
+        self.assertEqual(current_only.points[5], TactileState.HIGH)
+
+    def test_long_menu_pages_across_the_five_positions(self):
+        menu = MenuNavigator(
+            "Long", [MenuItem(str(index), str(index)) for index in range(7)],
+        )
+        menu.index = 5
+
+        frame = MenuStack((menu,)).frame()
+
+        self.assertEqual(frame.points[0], TactileState.HIGH)
+        self.assertEqual(frame.points[4], TactileState.OFF)
+
     def test_known_phrase_plays_clip_without_calling_tts_backend(self):
         class RecordingBackend(SpeechBackend):
             def __init__(self):

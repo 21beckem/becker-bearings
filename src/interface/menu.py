@@ -10,6 +10,15 @@ from .contracts import (
 from .debug import debug
 
 
+MENU_COLUMNS = 4
+MENU_ROWS = 5
+MENU_TACTILE_MODES = {
+    "trinary_ancestors_low",
+    "binary_ancestors_high",
+    "current_only",
+}
+
+
 @dataclass
 class MenuItem:
     key: str
@@ -100,19 +109,14 @@ class MenuNavigator:
         return MenuResult(speech=speech, selected=selected, moved=moved)
 
     def output(self, result=None, header_text=None, extra_info=()):
-        points = [TactileState.OFF] * 20
-        for index, item in enumerate(self.items):
-            if index % 20 == self.index % 20:
-                points[index % 20] = TactileState.HIGH
-            elif item.tactile_state != TactileState.OFF:
-                points[index % 20] = item.tactile_state
         result = result or MenuResult()
         return LensOutput(
-            tactile=TactileFrame(tuple(points)),
+            tactile=MenuStack((self,)).frame(),
             header_text=header_text or f"{self.title}: {self.current.label}",
             info_title=self.title,
             info_lines=tuple(self._info_lines()) + tuple(extra_info),
             speech=result.speech,
+            menu_layers=(self,),
         )
 
     def _info_lines(self):
@@ -163,3 +167,44 @@ class MenuNavigator:
         if abs(value) < 0.55:
             return 0
         return 1 if value > 0 else -1
+
+
+class MenuStack:
+    """Compose logical menu layers into the grip's four tactile columns."""
+
+    def __init__(self, layers=(), tactile_mode="trinary_ancestors_low"):
+        self.layers = tuple(layers)
+        self.tactile_mode = (
+            tactile_mode if tactile_mode in MENU_TACTILE_MODES
+            else "trinary_ancestors_low"
+        )
+
+    def frame(self):
+        points = [TactileState.OFF] * 20
+        visible = self.layers[-MENU_COLUMNS:]
+        first_visible = len(self.layers) - len(visible)
+        for visible_index, navigator in enumerate(visible):
+            depth = first_visible + visible_index
+            if visible_index == len(visible) - 1:
+                state = TactileState.HIGH
+            elif self.tactile_mode == "trinary_ancestors_low":
+                state = TactileState.LOW
+            elif self.tactile_mode == "binary_ancestors_high":
+                state = TactileState.HIGH
+            else:
+                state = TactileState.OFF
+            self._write_layer(points, navigator, depth, state)
+        return TactileFrame(tuple(points))
+
+    @staticmethod
+    def _write_layer(points, navigator, depth, selected_state):
+        column = min(depth, MENU_COLUMNS - 1)
+        page_start = (navigator.index // MENU_ROWS) * MENU_ROWS
+        for page_offset, item_index in enumerate(
+                range(page_start, min(page_start + MENU_ROWS, len(navigator.items)))):
+            item = navigator.items[item_index]
+            point_index = column * MENU_ROWS + page_offset
+            if item_index == navigator.index:
+                points[point_index] = selected_state
+            elif item.tactile_state != TactileState.OFF:
+                points[point_index] = item.tactile_state

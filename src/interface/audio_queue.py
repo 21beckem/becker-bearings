@@ -87,6 +87,12 @@ class AudioQueue:
     def queued(self):
         return tuple(self._queued)
 
+    def contains(self, message_id):
+        return (
+            (self._current is not None and self._current.message_id == message_id)
+            or any(item.message_id == message_id for item in self._queued)
+        )
+
     def submit(self, request):
         self._sequence += 1
         message = AudioMessage.from_request(request, sequence=self._sequence)

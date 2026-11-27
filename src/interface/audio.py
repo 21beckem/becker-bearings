@@ -329,6 +329,11 @@ class AudioService:
         backend_error = getattr(self.backend, "error_text", None)
         return backend_error or self._last_error
 
+    def has_message(self, message_id):
+        """Return whether a message is currently playing or queued."""
+        with self._lock:
+            return self._queue.contains(message_id)
+
     def speak(self, text, interrupt=False, priority=0,
               category=SpeechCategory.CONTENT, clip_id="", message_id="",
               message_type=None, lens_id="", error_key="",

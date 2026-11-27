@@ -92,6 +92,9 @@ class LensOutput:
     view_mode: str = "map"
     speech: tuple[SpeechRequest, ...] = ()
     view_payload: object = None
+    # Logical menu navigators represented by this output.  The controller
+    # composes these into the shared four-column tactile menu layout.
+    menu_layers: tuple = ()
 
 
 @dataclass(frozen=True)

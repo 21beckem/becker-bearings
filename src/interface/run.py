@@ -66,7 +66,9 @@ def main(argv=None):
     settings_path = Path(__file__).resolve().parents[1] / "compute" / "settings.json"
     from .settings import SettingsRegistry
     controller = LensController(
-        tactile=tactile_output, settings=SettingsRegistry(settings_path)
+        tactile=tactile_output,
+        settings=SettingsRegistry(settings_path),
+        interface_config=config.get("interface", {}),
     )
     controller.register(SettingsLens)
     controller.discover_directory(Path(__file__).resolve().parents[1] / "lenses")

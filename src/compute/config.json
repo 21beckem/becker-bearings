@@ -1,4 +1,7 @@
 {
+  "interface": {
+    "menu_layer_tactile_mode": "current_only"
+  },
   "calibration": "calibration.npz",
   "camera": {
     "index": 1,

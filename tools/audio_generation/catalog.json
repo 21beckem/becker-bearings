@@ -28,7 +28,7 @@
     {"id": "settings.value.instructions", "type": "Instruction", "text": "Move the joystick to choose a value. Press the button to accept."},
     {"id": "settings.review.instructions", "type": "Instruction", "text": "Choose what to do with the changes. Press the button to select."},
     {"id": "quick_menu.no_settings.instructions", "type": "Instruction", "text": "This lens has no settings."},
-    {"id": "settings.current_value", "type": "MenuOption", "concatenate": true, "text": "Current value"},
+    {"id": "settings.current_value", "type": "MenuOption", "concatenate": true, "text": "Currently"},
     {"id": "settings.value.on", "type": "MenuOption", "concatenate": true, "text": "on."},
     {"id": "settings.value.off", "type": "MenuOption", "concatenate": true, "text": "off."},
     {"id": "settings.value.true", "type": "MenuOption", "concatenate": true, "text": "true."},
