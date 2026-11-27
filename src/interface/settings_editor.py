@@ -49,6 +49,11 @@ class SettingsEditor:
         items.append(MenuItem(
             "help", "Repeat menu instructions", "Speak the menu controls again.",
         ))
+        if self.target.on_leave:
+            items.append(MenuItem(
+                "back", "Back", "Leave settings without changing the current screen.",
+                select=self.target.on_leave,
+            ))
         self.menu = MenuNavigator(
             self.target.title, items,
             instructions=(
@@ -60,10 +65,6 @@ class SettingsEditor:
     def update(self, snapshot, input_state):
         if self.state == self.LIST:
             result = self.menu.update(input_state)
-            if result.back:
-                if self.target.on_leave:
-                    self.target.on_leave()
-                return self.menu.output(MenuResultCompat(()), header_text=self.target.title)
             if result.selected is not None and result.selected.select is not None:
                 result.selected.select()
             speech = result.speech
@@ -91,7 +92,6 @@ class SettingsEditor:
                           select=lambda value=value: self._choose_value(value))
                  for value, label in zip(values, labels)],
                 instructions=("Move the joystick to choose a value.", "Press the button to accept."),
-                allow_back=False,
             )
             self.value_menu.index = max(0, list(values).index(self.transaction.get(spec.key)))
             self.value_menu.enter()
@@ -112,10 +112,6 @@ class SettingsEditor:
         spec = self.active_spec
         if hasattr(self, "value_menu") and (spec.value_type in ("bool", "choice") or spec.choices):
             result = self.value_menu.update(input_state)
-            if result.back:
-                self.state = self.LIST
-                self.menu._announce = True
-                return self.menu.output(MenuResultCompat(()))
             if result.selected is not None and result.selected.select:
                 result.selected.select()
             if self.state == self.LIST:
@@ -163,10 +159,6 @@ class SettingsEditor:
 
     def _update_review(self, input_state):
         result = self.review_menu.update(input_state)
-        if result.back:
-            self.state = self.LIST
-            self.menu._announce = True
-            return self.menu.output(MenuResultCompat(()))
         speech = result.speech
         if self._review_summary_pending:
             speech = (SpeechRequest(

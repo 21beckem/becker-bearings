@@ -31,7 +31,7 @@ class ContractTests(unittest.TestCase):
 
     def test_joystick_values_are_normalized(self):
         with self.assertRaises(ValueError):
-            HandInputState(joystick_x=1.1)
+            HandInputState(joystick=1.1)
 
 
 if __name__ == "__main__":

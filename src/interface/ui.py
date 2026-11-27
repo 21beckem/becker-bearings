@@ -178,19 +178,14 @@ class ScreenShell(QMainWindow):
 
     def keyPressEvent(self, event):
         key = event.key()
-        x = 0.0
-        y = 0.0
-        if key in (Qt.Key_Left, Qt.Key_A):
-            x = -1.0
-        elif key in (Qt.Key_Right, Qt.Key_D):
-            x = 1.0
-        elif key in (Qt.Key_Up, Qt.Key_W):
-            y = -1.0
+        joystick = 0.0
+        if key in (Qt.Key_Up, Qt.Key_W):
+            joystick = 1.0
         elif key in (Qt.Key_Down, Qt.Key_S):
-            y = 1.0
-        if x or y:
-            debug("ui_key_press key=%s joystick_x=%s joystick_y=%s", key, x, y)
-            self.hand_input.set_state(joystick_x=x, joystick_y=y)
+            joystick = -1.0
+        if joystick:
+            debug("ui_key_press key=%s joystick=%s", key, joystick)
+            self.hand_input.set_state(joystick=joystick)
         elif key in (Qt.Key_Space, Qt.Key_Return, Qt.Key_Enter):
             debug("ui_key_press key=%s button_down=True", key)
             self.hand_input.set_state(button_down=True, button_pressed=True)
@@ -199,10 +194,9 @@ class ScreenShell(QMainWindow):
 
     def keyReleaseEvent(self, event):
         key = event.key()
-        if key in (Qt.Key_Left, Qt.Key_Right, Qt.Key_A, Qt.Key_D,
-                   Qt.Key_Up, Qt.Key_Down, Qt.Key_W, Qt.Key_S):
+        if key in (Qt.Key_Up, Qt.Key_Down, Qt.Key_W, Qt.Key_S):
             debug("ui_key_release key=%s", key)
-            self.hand_input.set_state(joystick_x=0.0, joystick_y=0.0)
+            self.hand_input.set_state(joystick=0.0)
         elif key in (Qt.Key_Space, Qt.Key_Return, Qt.Key_Enter):
             debug("ui_key_release key=%s button_down=False", key)
             self.hand_input.set_state(button_down=False, button_pressed=False)
@@ -215,12 +209,12 @@ class ScreenShell(QMainWindow):
             self.timer.stop()
             return
         snapshot = self.worker.latest()
+        output = self.controller.update(snapshot, self.hand_input.read())
         if snapshot is None:
             if self.worker.finished:
                 self.header.setText("Compute finished")
                 self.timer.stop()
             return
-        output = self.controller.update(snapshot, self.hand_input.read())
         self.header.setText(output.header_text or self.controller.audio.current_text or " ")
         self.tactile.set_frame(output.tactile)
         self.info.set_output(output, self.controller.audio.last_error)

@@ -30,20 +30,17 @@ class MenuResult:
     speech: tuple[SpeechRequest, ...] = ()
     selected: MenuItem | None = None
     moved: bool = False
-    back: bool = False
 
 
 class MenuNavigator:
     """A menu whose focused item is represented by one tactile point."""
 
-    def __init__(self, title, items, instructions=(), initial_index=0,
-                 allow_back=True):
+    def __init__(self, title, items, instructions=(), initial_index=0):
         if not items:
             raise ValueError("a menu requires at least one item")
         self.title = title
         self.items = list(items)
         self.instructions = tuple(instructions)
-        self.allow_back = allow_back
         self.index = max(0, min(initial_index, len(self.items) - 1))
         self._announce = True
         self._entered = False
@@ -68,11 +65,6 @@ class MenuNavigator:
 
     def update(self, input_state):
         now = getattr(input_state, "timestamp_s", monotonic())
-        if (self.allow_back and abs(input_state.joystick_x) > 0.55 and
-                abs(input_state.joystick_x) > abs(input_state.joystick_y) and
-                input_state.joystick_x < 0):
-            self._last_direction = 0
-            return MenuResult(back=True)
         direction = self._direction(input_state)
         moved = False
         if direction == 0:
@@ -148,10 +140,7 @@ class MenuNavigator:
 
     @staticmethod
     def _direction(input_state):
-        x = input_state.joystick_x
-        y = input_state.joystick_y
-        if max(abs(x), abs(y)) < 0.55:
+        value = input_state.joystick
+        if abs(value) < 0.55:
             return 0
-        if abs(y) >= abs(x):
-            return 1 if y > 0 else -1
-        return 1 if x > 0 else -1
+        return 1 if value > 0 else -1

@@ -51,7 +51,7 @@ class MenuSettingsTests(unittest.TestCase):
             start = perf_counter()
             for index in range(1, 21):
                 controller.update(None, HandInputState(
-                    joystick_y=1.0, timestamp_s=float(index)
+                    joystick=1.0, timestamp_s=float(index)
                 ))
                 controller.update(None, HandInputState(timestamp_s=float(index) + 0.01))
             elapsed = perf_counter() - start
@@ -69,12 +69,12 @@ class MenuSettingsTests(unittest.TestCase):
         self.assertIn("Menu. Alpha", first.speech[0].text)
         self.assertIn("Use the joystick.", first.speech[0].instruction_text)
 
-        moved = menu.update(HandInputState(joystick_y=-1.0, timestamp_s=1.0))
+        moved = menu.update(HandInputState(joystick=-1.0, timestamp_s=1.0))
         self.assertEqual(menu.current.key, "b")
         self.assertEqual(len(moved.speech), 1)
         self.assertEqual(moved.speech[0].text, "Bravo")
 
-        wrapped = menu.update(HandInputState(joystick_y=-1.0, timestamp_s=2.0))
+        wrapped = menu.update(HandInputState(joystick=-1.0, timestamp_s=2.0))
         self.assertEqual(menu.current.key, "a")
         self.assertEqual(wrapped.speech[0].text, "Alpha")
 
@@ -89,13 +89,13 @@ class MenuSettingsTests(unittest.TestCase):
 
         editor.update(None, HandInputState())
         editor.update(None, HandInputState(button_pressed=True))
-        editor.update(None, HandInputState(joystick_y=1.0, timestamp_s=1.0))
+        editor.update(None, HandInputState(joystick=1.0, timestamp_s=1.0))
         editor.update(None, HandInputState(button_pressed=True, timestamp_s=2.0))
         self.assertFalse(registry.get("test", "enabled"))
         self.assertEqual(editor.transaction.get("enabled"), True)
 
-        editor.update(None, HandInputState(joystick_y=1.0, timestamp_s=3.0))
-        editor.update(None, HandInputState(joystick_y=1.0, timestamp_s=4.0))
+        editor.update(None, HandInputState(joystick=1.0, timestamp_s=3.0))
+        editor.update(None, HandInputState(joystick=1.0, timestamp_s=4.0))
         editor.update(None, HandInputState(button_pressed=True, timestamp_s=5.0))
         editor.update(None, HandInputState(button_pressed=True, timestamp_s=6.0))
         self.assertTrue(registry.get("test", "enabled"))

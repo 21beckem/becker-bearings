@@ -17,6 +17,7 @@ from .settings_editor import SettingsLens
 from .debug import configure_debug_log
 from .tactile import (
     ChannelTactileOutput,
+    CombinedHandInput,
     KeyboardHandInput,
     MirroredTactileOutput,
     ScreenTactileOutput,
@@ -51,9 +52,9 @@ def main(argv=None):
     runtime = ComputeRuntime(config)
     feed_class = PhysicalCameraFeed if args.camera else CameraFeed
     worker = ComputeWorker(runtime, feed_class, config["camera"])
-    hand_input = KeyboardHandInput()
     screen_output = ScreenTactileOutput()
     if args.screen_only:
+        hand_input = KeyboardHandInput()
         tactile_output = screen_output
     else:
         hardware_output = ChannelTactileOutput(
@@ -61,6 +62,7 @@ def main(argv=None):
             interval_s=args.tactile_interval,
         )
         tactile_output = MirroredTactileOutput(screen_output, hardware_output)
+        hand_input = CombinedHandInput(hardware_output)
     settings_path = Path(__file__).resolve().parents[1] / "compute" / "settings.json"
     from .settings import SettingsRegistry
     controller = LensController(

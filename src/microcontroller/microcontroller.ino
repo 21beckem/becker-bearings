@@ -71,6 +71,14 @@ const uint8_t  TEST_ON_TICKS     = 6;
 const uint8_t  TEST_OFF_TICKS    = 2;
 const uint16_t TEST_TICK_MS      = 1000;
 
+// ===================== Hand controls =====================
+const uint8_t JOYSTICK_PIN = A0;
+const uint8_t BUTTON_PIN = 4;
+const uint16_t INPUT_SAMPLE_MS = 20;
+const uint16_t INPUT_HEARTBEAT_MS = 100;
+const uint16_t BUTTON_DEBOUNCE_MS = 25;
+const int16_t JOYSTICK_DEADZONE = 25;
+
 // ===================== State =====================
 const uint8_t SYNC_BYTE = 0xFF;
 uint8_t rxBuffer[5];
@@ -87,6 +95,14 @@ uint32_t lastUpdateMs = 0;
 bool     testMode = TEST_MODE_AT_BOOT;
 uint32_t lastTestTickMs = 0;
 uint8_t  testTick = 0;
+uint32_t lastInputMs = 0;
+uint32_t lastInputSentMs = 0;
+uint32_t buttonChangedMs = 0;
+uint8_t inputSequence = 0;
+bool rawButton = false;
+bool stableButton = false;
+int16_t lastSentAxis = 0;
+bool lastSentButton = false;
 
 // ===================== Channel control =====================
 
@@ -219,10 +235,61 @@ void processSerial() {
   }
 }
 
+int16_t readJoystick() {
+  int raw = analogRead(JOYSTICK_PIN);
+  int delta = raw - 512;
+  if (abs(delta) <= JOYSTICK_DEADZONE) return 0;
+  if (delta > 0) {
+    return (int16_t)constrain((delta - JOYSTICK_DEADZONE) * 1000L /
+                              (511 - JOYSTICK_DEADZONE), 0, 1000);
+  }
+  return (int16_t)constrain((delta + JOYSTICK_DEADZONE) * 1000L /
+                            (512 - JOYSTICK_DEADZONE), -1000, 0);
+}
+
+void sendInputPacket(int16_t axis, bool button) {
+  uint8_t packet[7];
+  packet[0] = 0xFE;
+  packet[1] = 0x01;
+  packet[2] = inputSequence++;
+  packet[3] = (uint8_t)(axis >> 8);
+  packet[4] = (uint8_t)(axis & 0xFF);
+  packet[5] = button ? 1 : 0;
+  uint8_t checksum = 0;
+  for (uint8_t i = 1; i <= 5; i++) checksum += packet[i];
+  packet[6] = checksum;
+  Serial.write(packet, sizeof(packet));
+}
+
+void sendInput() {
+  uint32_t now = millis();
+  if (now - lastInputMs < INPUT_SAMPLE_MS) return;
+  lastInputMs = now;
+
+  int16_t axis = readJoystick();
+  bool button = digitalRead(BUTTON_PIN) == LOW;
+  if (button != rawButton) {
+    rawButton = button;
+    buttonChangedMs = now;
+  }
+  if (button != stableButton && now - buttonChangedMs >= BUTTON_DEBOUNCE_MS) {
+    stableButton = button;
+  }
+
+  if (axis != lastSentAxis || stableButton != lastSentButton ||
+      now - lastInputSentMs >= INPUT_HEARTBEAT_MS) {
+    sendInputPacket(axis, stableButton);
+    lastSentAxis = axis;
+    lastSentButton = stableButton;
+    lastInputSentMs = now;
+  }
+}
+
 // ===================== Arduino entry points =====================
 
 void setup() {
   Serial.begin(115200);
+  pinMode(BUTTON_PIN, INPUT_PULLUP);
 
   Wire.begin(SDA_PIN, SCL_PIN);
 
@@ -254,6 +321,7 @@ void setup() {
 
 void loop() {
   processSerial();
+  sendInput();
   if (testMode) runTest();
   updateServos();
 }

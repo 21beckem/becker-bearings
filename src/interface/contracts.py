@@ -30,17 +30,14 @@ class TactileFrame:
 
 @dataclass(frozen=True)
 class HandInputState:
-    joystick_x: float = 0.0
-    joystick_y: float = 0.0
+    joystick: float = 0.0
     button_down: bool = False
     button_pressed: bool = False
     timestamp_s: float = field(default_factory=monotonic)
 
     def __post_init__(self):
-        if not -1.0 <= self.joystick_x <= 1.0:
-            raise ValueError("joystick_x must be between -1 and 1")
-        if not -1.0 <= self.joystick_y <= 1.0:
-            raise ValueError("joystick_y must be between -1 and 1")
+        if not -1.0 <= self.joystick <= 1.0:
+            raise ValueError("joystick must be between -1 and 1")
 
 
 class SpeechCategory(str, Enum):

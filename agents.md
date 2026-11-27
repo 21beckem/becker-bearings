@@ -8,7 +8,7 @@ person walk around and navigate without sight.
 The physical interface has:
 
 - 20 trinary or binary points of contact with the user's hand.
-- One joystick with two axes.
+- One joystick with one axis.
 - One button.
 
 For the person using the system, this physical interface is the only interface
@@ -76,7 +76,7 @@ physical stereo camera or `begin.bat --recording <name>` to choose a recording.
 
 For development control testing:
 
-- Arrow keys or WASD control the simulated joystick.
+- Up/Down or W/S control the simulated joystick; Space or Enter simulates the button.
 - Space or Enter simulates the button.
 
 The grip preview reflects the tactile frame sent through the screen tactile

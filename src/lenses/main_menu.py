@@ -43,8 +43,6 @@ class MainMenuLens(Lens):
 
     def update(self, snapshot, input_state):
         result = self.menu.update(input_state)
-        if result.back:
-            return self.menu.output(result)
         if result.selected is not None and result.selected.select:
             result.selected.select()
         if result.selected is not None and result.selected.key == "help":

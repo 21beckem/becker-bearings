@@ -23,7 +23,8 @@ class ChannelTactileOutput(TactileOutput):
     including ticks where the frame has not changed.
 
     ``sender`` is injectable so this adapter can be tested without hardware.
-    When it is omitted, *port* is passed to :class:`ChannelSender`.
+    When it is omitted, *port* is passed to the shared bidirectional serial
+    device transport.
     """
 
     def __init__(self, port=None, baudrate=115200, interval_s=0.1,
@@ -72,8 +73,8 @@ class ChannelTactileOutput(TactileOutput):
                 if now >= next_connection_attempt:
                     try:
                         # Keep serial hardware optional for the screen-only UI.
-                        from .channel_sender import ChannelSender
-                        sender = ChannelSender(self._port, self._baudrate)
+                        from .device_serial import DeviceSerial
+                        sender = DeviceSerial(self._port, self._baudrate)
                         with self._lock:
                             if self._closed:
                                 sender.close()
@@ -87,6 +88,8 @@ class ChannelTactileOutput(TactileOutput):
                 try:
                     sender.set_all(tuple(point.value for point in frame.points))
                     sender.send()
+                    if hasattr(sender, "poll_input"):
+                        sender.poll_input()
                 except Exception:
                     # A disconnected grip must not affect the screen or lens.
                     # Drop this connection and let the retry timer reconnect it.
@@ -121,6 +124,10 @@ class ChannelTactileOutput(TactileOutput):
                 sender.close()
             except Exception:
                 pass
+
+    def current_sender(self):
+        with self._lock:
+            return self._sender
 
 
 class MirroredTactileOutput(TactileOutput):
@@ -184,10 +191,37 @@ class KeyboardHandInput(HandInput):
 
     def set_state(self, **changes):
         values = {
-            "joystick_x": self.state.joystick_x,
-            "joystick_y": self.state.joystick_y,
+            "joystick": self.state.joystick,
             "button_down": self.state.button_down,
             "button_pressed": self.state.button_pressed,
         }
         values.update(changes)
         self.state = HandInputState(**values)
+
+
+class SerialHandInput(HandInput):
+    """Read the latest input snapshot from the shared serial output."""
+
+    def __init__(self, tactile_output):
+        self._tactile_output = tactile_output
+
+    def read(self):
+        sender = self._tactile_output.current_sender()
+        return sender.read_input() if sender is not None else HandInputState()
+
+
+class CombinedHandInput(HandInput):
+    """Allow keyboard testing while a physical serial device is connected."""
+
+    def __init__(self, tactile_output):
+        self._hardware = SerialHandInput(tactile_output)
+        self._keyboard = KeyboardHandInput()
+
+    def read(self):
+        keyboard = self._keyboard.read()
+        if keyboard.joystick or keyboard.button_down or keyboard.button_pressed:
+            return keyboard
+        return self._hardware.read()
+
+    def set_state(self, **changes):
+        self._keyboard.set_state(**changes)

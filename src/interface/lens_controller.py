@@ -76,11 +76,11 @@ class LensController:
         pressed = input_state.button_pressed and not self._previous_button_pressed
         self._previous_button_pressed = input_state.button_pressed
         normalized_input = replace(input_state, button_pressed=pressed)
-        if (pressed or input_state.joystick_x or input_state.joystick_y):
+        if (pressed or input_state.joystick):
             debug(
                 "controller_input lens=%s x=%s y=%s button_pressed=%s button_down=%s",
                 self._active.manifest.lens_id,
-                input_state.joystick_x, input_state.joystick_y,
+                input_state.joystick,
                 pressed, input_state.button_down,
             )
 
@@ -102,9 +102,14 @@ class LensController:
             return self._deliver(output)
 
         if self._quick_menu is not None:
+            lens_before = self._active
             result = self._quick_menu.update(normalized_input)
             if result.selected is not None:
                 self._select_quick_menu_item(result.selected.key)
+                if self._active is not lens_before:
+                    # Do not let the button press that selected a destination
+                    # immediately select the destination's first menu item.
+                    self._previous_button_pressed = normalized_input.button_down
             if self._quick_menu_notice:
                 result = replace(result, speech=result.speech + self._quick_menu_notice)
                 self._quick_menu_notice = ()
@@ -114,7 +119,12 @@ class LensController:
                 output = self.last_output
             return self._deliver(output)
 
+        lens_before = self._active
         output = self._active.update(snapshot, normalized_input)
+        if self._active is not lens_before:
+            # Lens switches can happen from inside a lens callback.  Consume
+            # the currently held button as the switch action.
+            self._previous_button_pressed = normalized_input.button_down
         if not isinstance(output, LensOutput):
             raise TypeError("A lens update must return LensOutput")
         if self._pending_entry_speech is not None:

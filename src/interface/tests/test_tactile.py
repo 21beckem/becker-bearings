@@ -2,7 +2,7 @@ import time
 import unittest
 
 from interface.contracts import TactileFrame, TactileState
-from interface.tactile import ChannelTactileOutput
+from interface.tactile import ChannelTactileOutput, CombinedHandInput, ScreenTactileOutput
 
 
 class FakeChannelSender:
@@ -36,6 +36,17 @@ class ChannelTactileOutputTests(unittest.TestCase):
         self.assertGreaterEqual(len(sender.values), 3)
         self.assertTrue(all(values == (2,) + (0,) * 19 for values in sender.values))
         self.assertTrue(sender.closed)
+
+    def test_combined_input_can_read_keyboard_without_serial_output(self):
+        # The screen-only path must remain keyboard-only and never require a
+        # serial sender to exist.
+        output = ChannelTactileOutput(sender=FakeChannelSender(), interval_s=0.01)
+        try:
+            input_adapter = CombinedHandInput(output)
+            input_adapter.set_state(joystick=1.0)
+            self.assertEqual(input_adapter.read().joystick, 1.0)
+        finally:
+            output.close()
 
 
 if __name__ == "__main__":
