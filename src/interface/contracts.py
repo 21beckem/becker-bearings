@@ -53,14 +53,25 @@ class SpeechCategory(str, Enum):
     INSTRUCTION = "instruction"
 
 
+class SpeechMessageType(str, Enum):
+    """Queue policy for one complete spoken message."""
+
+    LENS_ENTRY = "LensEntry"
+    MENU_OPTION = "MenuOption"
+    INSTRUCTION = "Instruction"
+    ERROR = "Error"
+
+
 @dataclass(frozen=True)
 class SpeechRequest:
     text: str
-    interrupt: bool = False
-    priority: int = 0
     category: SpeechCategory = SpeechCategory.CONTENT
-    instruction_text: str = ""
     clip_id: str = ""
+    message_id: str = ""
+    message_type: SpeechMessageType | None = None
+    lens_id: str = ""
+    error_key: str = ""
+    play_after_instructions: bool = False
 
 
 @dataclass(frozen=True)

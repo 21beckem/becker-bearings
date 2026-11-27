@@ -132,6 +132,7 @@ def main():
             sf.write(destination, audio, SAMPLE_RATE, subtype="PCM_16", format="WAV")
         entries.append({
             "id": phrase_id,
+            "type": phrase.get("type", ""),
             "text": text,
             "file": filename,
             "fingerprint": fingerprint,

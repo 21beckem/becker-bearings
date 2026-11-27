@@ -26,7 +26,7 @@ class MainMenuLens(Lens):
                 select=lambda lens_id=lens_id: controller.start(lens_id),
             ))
         items.append(MenuItem(
-            "system_settings", "Settings", "Edit overall device settings.",
+            "settings", "Settings", "Edit overall device settings.",
             select=lambda: controller.start("system_settings"),
         ))
         items.append(MenuItem(

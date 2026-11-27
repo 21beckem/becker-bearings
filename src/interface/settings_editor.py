@@ -3,7 +3,8 @@
 from dataclasses import dataclass
 
 from .contracts import (
-    Lens, LensManifest, LensOutput, SettingSpec, SpeechCategory, SpeechRequest,
+    Lens, LensManifest, LensOutput, SettingSpec, SpeechCategory,
+    SpeechMessageType, SpeechRequest,
 )
 from .menu import MenuItem, MenuNavigator
 
@@ -60,6 +61,7 @@ class SettingsEditor:
                 "Move the joystick to slide through options.",
                 "Press the button to select.",
             ),
+            instruction_id="settings.instructions",
         )
 
     def update(self, snapshot, input_state):
@@ -92,6 +94,7 @@ class SettingsEditor:
                           select=lambda value=value: self._choose_value(value))
                  for value, label in zip(values, labels)],
                 instructions=("Move the joystick to choose a value.", "Press the button to accept."),
+                instruction_id="settings.value.instructions",
             )
             self.value_menu.index = max(0, list(values).index(self.transaction.get(spec.key)))
             self.value_menu.enter()
@@ -103,7 +106,9 @@ class SettingsEditor:
         self.transaction.set(self.active_spec.key, value)
         self._accepted_speech = (SpeechRequest(
             f"{self.active_spec.label}. {self._format(self.active_spec, value)} accepted.",
-            interrupt=True, category=SpeechCategory.CHANGE,
+            category=SpeechCategory.CHANGE,
+            message_id=f"settings.{self.active_spec.key}.accepted",
+            message_type=SpeechMessageType.MENU_OPTION,
         ),)
         self.state = self.LIST
         self.menu._announce = True
@@ -131,7 +136,9 @@ class SettingsEditor:
             self.transaction.set(spec.key, value)
             speech = (SpeechRequest(
                 f"{spec.label}. {self._format(spec, value)}",
-                interrupt=True, category=SpeechCategory.CHANGE,
+                category=SpeechCategory.CHANGE,
+                message_id=f"settings.{spec.key}.changed",
+                message_type=SpeechMessageType.MENU_OPTION,
             ),)
         else:
             speech = ()
@@ -153,6 +160,7 @@ class SettingsEditor:
                 MenuItem("discard", "Discard changes", select=self._discard),
             ],
             instructions=("Choose what to do with the changes.", "Press the button to select."),
+            instruction_id="settings.review.instructions",
         )
         self._review_summary_pending = True
         self.state = self.REVIEW
@@ -162,8 +170,10 @@ class SettingsEditor:
         speech = result.speech
         if self._review_summary_pending:
             speech = (SpeechRequest(
-                self._change_summary(), interrupt=True,
+                self._change_summary(),
                 category=SpeechCategory.CONFIRMATION,
+                message_id="settings.review.summary",
+                message_type=SpeechMessageType.INSTRUCTION,
             ),) + speech
             self._review_summary_pending = False
         if result.selected is not None and result.selected.select:

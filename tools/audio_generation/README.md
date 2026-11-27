@@ -99,11 +99,15 @@ Each phrase needs a stable ID and the exact text to synthesize:
   "phrases": [
     {
       "id": "menu.settings",
+      "type": "MenuOption",
       "text": "Settings"
     }
   ]
 }
 ```
+
+`type` is one of `LensEntry`, `MenuOption`, `Instruction`, or `Error`. It is
+copied into the generated manifest so each recording retains its queue type.
 
 `language: "a"` is American English. The voice and language must match. IDs
 may contain letters, numbers, periods, hyphens, and underscores; they become

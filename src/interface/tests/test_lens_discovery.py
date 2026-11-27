@@ -36,6 +36,32 @@ class LensDiscoveryTests(unittest.TestCase):
         self.assertTrue(any("Main Menu" in request.text for request in first.speech))
         self.assertEqual(selected.tactile.points[0].value, 2)
 
+    def test_main_menu_entry_precedes_instructions_and_option(self):
+        class FakeAudio:
+            def __init__(self):
+                self.calls = []
+
+            def close(self):
+                pass
+
+            def speak(self, text, *args, **kwargs):
+                self.calls.append(text)
+
+        audio = FakeAudio()
+        controller = LensController(tactile=ScreenTactileOutput(), audio=audio)
+        controller.discover_directory(ROOT / "lenses")
+        controller.start("main_menu")
+        controller.update(None, HandInputState())
+        controller.close()
+        self.assertEqual(
+            audio.calls[:3],
+            [
+                "Entering Main Menu",
+                "Move the joystick to slide through menu options. Press the button to select.",
+                "Finger Rays",
+            ],
+        )
+
     def test_double_button_press_opens_quick_menu_for_any_lens(self):
         class FakeAudio:
             def close(self):
@@ -102,7 +128,33 @@ class LensDiscoveryTests(unittest.TestCase):
         controller.start("finger_rays")
         controller.update(None, HandInputState())
         controller.close()
-        self.assertTrue(any("Finger Rays entered" in text for text in audio.calls))
+        self.assertTrue(any("Entering Finger Rays" in text for text in audio.calls))
+
+    def test_quick_menu_entry_and_resume_are_lens_entries(self):
+        class FakeAudio:
+            def __init__(self):
+                self.calls = []
+
+            def close(self):
+                pass
+
+            def speak(self, text, *args, **kwargs):
+                self.calls.append((text, kwargs))
+
+        audio = FakeAudio()
+        controller = LensController(tactile=ScreenTactileOutput(), audio=audio)
+        controller.discover_directory(ROOT / "lenses")
+        controller.start("finger_rays")
+        controller.update(None, HandInputState())
+
+        controller._open_quick_menu()
+        controller.update(None, HandInputState(timestamp_s=1.0))
+        self.assertTrue(any(text == "Entering Quick menu" for text, _ in audio.calls))
+
+        controller._close_quick_menu()
+        controller.update(None, HandInputState(timestamp_s=2.0))
+        self.assertTrue(any(text == "Resuming Finger Rays" for text, _ in audio.calls))
+        controller.close()
 
 
 if __name__ == "__main__":

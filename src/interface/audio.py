@@ -2,10 +2,10 @@
 
 import json
 from pathlib import Path
-from queue import Empty, PriorityQueue
 from threading import Event, Lock, Thread
 
-from .contracts import SpeechCategory
+from .audio_queue import AudioQueue
+from .contracts import SpeechCategory, SpeechRequest
 from .debug import debug
 
 try:
@@ -29,6 +29,8 @@ if QObject is not None:
             super().__init__()
             self._effects = {}
             self._text_to_clip = {}
+            self._clip_waiters = {}
+            self._clip_waiters_lock = Lock()
             self.play_requested.connect(self._play, Qt.QueuedConnection)
             self.stop_requested.connect(self._stop, Qt.QueuedConnection)
             self._load_manifest(Path(manifest_path))
@@ -51,6 +53,10 @@ if QObject is not None:
                 effect = QSoundEffect(self)
                 effect.setSource(QUrl.fromLocalFile(str(source.resolve())))
                 effect.setVolume(1.0)
+                effect.playingChanged.connect(
+                    lambda clip_id=clip_id, effect=effect:
+                    self._playing_changed(clip_id, effect.isPlaying())
+                )
                 self._effects[clip_id] = effect
                 if phrase.get("text"):
                     self._text_to_clip[phrase["text"]] = clip_id
@@ -62,8 +68,15 @@ if QObject is not None:
         def play_clip(self, clip_id, interrupt=True):
             if clip_id not in self._effects:
                 return False
+            waiter = Event()
+            with self._clip_waiters_lock:
+                self._clip_waiters[clip_id] = waiter
             self.play_requested.emit(clip_id, interrupt)
+            waiter.wait(120.0)
             return True
+
+        def stop(self):
+            self.stop_requested.emit()
 
         @Slot(str, bool)
         def _play(self, clip_id, interrupt):
@@ -79,9 +92,22 @@ if QObject is not None:
             for effect in self._effects.values():
                 if effect.isPlaying():
                     effect.stop()
+            with self._clip_waiters_lock:
+                waiters = tuple(self._clip_waiters.values())
+                self._clip_waiters.clear()
+            for waiter in waiters:
+                waiter.set()
+
+        def _playing_changed(self, clip_id, playing):
+            if playing:
+                return
+            with self._clip_waiters_lock:
+                waiter = self._clip_waiters.pop(clip_id, None)
+            if waiter is not None:
+                waiter.set()
 
         def close(self):
-            self.stop_requested.emit()
+            self.stop()
 
 
     def _default_clip_player():
@@ -184,6 +210,7 @@ if QObject is not None:
                 self.speech.stop()
 else:
     _QtSpeechBridge = None
+    _default_clip_player = lambda: None
 
 
 class SpeechBackend:
@@ -291,13 +318,7 @@ class AudioService:
         debug("audio_service_backend backend=%s startup_error=%r", type(backend).__name__, self.startup_error)
         self.current_text = ""
         self._last_error = self.startup_error
-        self._queue = PriorityQueue()
-        # Interruptible speech is latest-wins.  Keeping it separate from the
-        # priority queue avoids repeatedly draining a queue while the speech
-        # backend is still finishing the previous option announcement.
-        self._pending_interrupt = None
-        self._speech_generation = 0
-        self._sequence = 0
+        self._queue = AudioQueue()
         self._lock = Lock()
         self._stop = Event()
         self._thread = Thread(target=self._run, name="lens-audio", daemon=True)
@@ -309,80 +330,67 @@ class AudioService:
         return backend_error or self._last_error
 
     def speak(self, text, interrupt=False, priority=0,
-              category=SpeechCategory.CONTENT, clip_id=""):
-        if not text:
+              category=SpeechCategory.CONTENT, clip_id="", message_id="",
+              message_type=None, lens_id="", error_key="",
+              play_after_instructions=False):
+        if isinstance(text, SpeechRequest):
+            request = text
+        else:
+            if not text:
+                return
+            request = SpeechRequest(
+                text=text,
+                category=category,
+                clip_id=clip_id,
+                message_id=message_id,
+                message_type=message_type,
+                lens_id=lens_id,
+                error_key=error_key,
+                play_after_instructions=play_after_instructions,
+            )
+        if not request.text:
             return
         debug(
-            "audio_request text=%r interrupt=%s priority=%s category=%s clip_id=%s",
-            text, interrupt, priority, category, clip_id,
+            "audio_request text=%r type=%s id=%s lens=%s clip_id=%s",
+            request.text, request.message_type, request.message_id,
+            request.lens_id, request.clip_id,
         )
-        clip_id = clip_id or getattr(self.clip_player, "clip_for_text", lambda _: None)(text)
-        if (clip_id and self.clip_player is not None and
-                self.clip_player.play_clip(clip_id, interrupt)):
-            self.current_text = text
-            if interrupt:
-                with self._lock:
-                    self._speech_generation += 1
-                    self._pending_interrupt = None
-                self._stop_backend()
-            return
         with self._lock:
-            if interrupt:
-                # Do not enqueue stale option announcements.  The worker may
-                # be inside a backend call, but the UI thread only replaces
-                # this one pending payload and never waits for that call.
-                self._speech_generation += 1
-                self._pending_interrupt = (
-                    text, category, interrupt, self._speech_generation, clip_id,
-                )
-                debug("audio_interrupt_replaced")
-                return
-            self._sequence += 1
-            self._queue.put((
-                -priority, self._sequence,
-                (text, category, interrupt, self._speech_generation, clip_id),
-            ))
-            debug("audio_queue_put sequence=%s size=%s", self._sequence, self._queue.qsize())
+            decision = self._queue.submit(request)
+            queued_count = len(self._queue.queued)
+        if decision.interrupt_current:
+            self._stop_backend()
+        debug("audio_queue_submit interrupt=%s queued=%s",
+              decision.interrupt_current, queued_count)
 
     def _run(self):
         while not self._stop.is_set():
-            queued = False
             with self._lock:
-                payload = self._pending_interrupt
-                if payload is not None:
-                    self._pending_interrupt = None
-            if payload is None:
-                try:
-                    _, _, payload = self._queue.get(timeout=0.1)
-                    queued = True
-                except Empty:
-                    continue
-                with self._lock:
-                    current_generation = self._speech_generation
-                if payload[3] < current_generation:
-                    self._queue.task_done()
-                    continue
-            text, _category, _interrupt, _generation, clip_id = payload
-            self.current_text = text
-            debug("audio_worker_dequeue text=%r interrupt=%s", text, _interrupt)
+                message = self._queue.begin_next()
+            if message is None:
+                self._stop.wait(0.1)
+                continue
+            self.current_text = message.text
+            debug("audio_worker_dequeue text=%r type=%s id=%s",
+                  message.text, message.message_type, message.message_id)
             try:
+                clip_id = message.clip_id or getattr(
+                    self.clip_player, "clip_for_text", lambda _: None
+                )(message.text)
                 if (clip_id and self.clip_player is not None and
-                        self.clip_player.play_clip(clip_id, _interrupt)):
+                        self.clip_player.play_clip(clip_id, False)):
                     pass
                 else:
-                    # Keep backend calls on the audio worker. Interrupt
-                    # handling is passed to the backend as one atomic
-                    # operation.
-                    self.backend.speak(text, interrupt=_interrupt)
-                debug("audio_worker_backend_return text=%r", text)
+                    self.backend.speak(message.text, interrupt=False)
+                debug("audio_worker_backend_return text=%r", message.text)
             except Exception as error:
                 # Speech must never stop the lens or compute loops, but the
                 # developer UI should make backend failures visible.
                 self._last_error = str(error)
                 debug("audio_worker_error error=%r", error)
             finally:
-                if queued:
-                    self._queue.task_done()
+                with self._lock:
+                    self._queue.finish(message)
 
     def _stop_backend(self):
         stop_backend = getattr(self.backend, "stop", None)
@@ -391,6 +399,12 @@ class AudioService:
                 stop_backend()
             except Exception as error:
                 debug("audio_backend_stop_error error=%r", error)
+        stop_clips = getattr(self.clip_player, "stop", None)
+        if stop_clips is not None:
+            try:
+                stop_clips()
+            except Exception as error:
+                debug("audio_clip_stop_error error=%r", error)
 
     def close(self):
         self._stop.set()

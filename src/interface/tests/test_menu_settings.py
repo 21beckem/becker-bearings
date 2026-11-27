@@ -4,7 +4,9 @@ from threading import Event
 from pathlib import Path
 from uuid import uuid4
 
-from interface.contracts import HandInputState, SettingSpec, SpeechCategory
+from interface.contracts import (
+    HandInputState, SettingSpec, SpeechCategory, SpeechMessageType,
+)
 from interface.menu import MenuItem, MenuNavigator
 from interface.menu import MenuItem, MenuNavigator
 from interface.settings import SettingsRegistry
@@ -28,12 +30,14 @@ class MenuSettingsTests(unittest.TestCase):
         class RecordingClipPlayer:
             def __init__(self):
                 self.calls = []
+                self.called = Event()
 
             def clip_for_text(self, text):
                 return "menu.settings" if text == "Settings" else None
 
             def play_clip(self, clip_id, interrupt=True):
                 self.calls.append((clip_id, interrupt))
+                self.called.set()
                 return clip_id == "menu.settings"
 
             def close(self):
@@ -44,12 +48,13 @@ class MenuSettingsTests(unittest.TestCase):
         audio = AudioService(backend=backend, clip_player=clips)
         try:
             audio.speak("Settings", interrupt=True)
+            self.assertTrue(clips.called.wait(1.0))
             audio.speak("dynamic text", interrupt=True)
             self.assertTrue(backend.called.wait(1.0))
         finally:
             audio.close()
-        self.assertEqual(clips.calls, [("menu.settings", True)])
-        self.assertEqual(backend.calls, [("dynamic text", True)])
+        self.assertEqual(clips.calls, [("menu.settings", False)])
+        self.assertEqual(backend.calls, [("dynamic text", False)])
 
     def test_interrupting_speech_does_not_kill_audio_worker(self):
         started = Event()
@@ -100,10 +105,12 @@ class MenuSettingsTests(unittest.TestCase):
             instructions=("Use the joystick.",),
         )
         first = menu.update(HandInputState())
-        self.assertEqual(len(first.speech), 1)
-        self.assertEqual(first.speech[0].category, SpeechCategory.CONTEXT)
-        self.assertIn("Menu. Alpha", first.speech[0].text)
-        self.assertIn("Use the joystick.", first.speech[0].instruction_text)
+        self.assertEqual(len(first.speech), 2)
+        self.assertEqual(first.speech[0].message_type, SpeechMessageType.INSTRUCTION)
+        self.assertEqual(first.speech[0].text, "Use the joystick.")
+        self.assertEqual(first.speech[1].category, SpeechCategory.OPTION)
+        self.assertEqual(first.speech[1].message_type, SpeechMessageType.MENU_OPTION)
+        self.assertEqual(first.speech[1].text, "Alpha")
 
         moved = menu.update(HandInputState(joystick=-1.0, timestamp_s=1.0))
         self.assertEqual(menu.current.key, "b")

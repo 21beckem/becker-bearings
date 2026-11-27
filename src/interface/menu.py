@@ -4,7 +4,8 @@ from dataclasses import dataclass
 from time import monotonic
 
 from .contracts import (
-    LensOutput, SpeechCategory, SpeechRequest, TactileFrame, TactileState,
+    LensOutput, SpeechCategory, SpeechMessageType, SpeechRequest,
+    TactileFrame, TactileState,
 )
 from .debug import debug
 
@@ -35,12 +36,14 @@ class MenuResult:
 class MenuNavigator:
     """A menu whose focused item is represented by one tactile point."""
 
-    def __init__(self, title, items, instructions=(), initial_index=0):
+    def __init__(self, title, items, instructions=(), initial_index=0,
+                 instruction_id="menu.instructions"):
         if not items:
             raise ValueError("a menu requires at least one item")
         self.title = title
         self.items = list(items)
         self.instructions = tuple(instructions)
+        self.instruction_id = instruction_id
         self.index = max(0, min(initial_index, len(self.items) - 1))
         self._announce = True
         self._entered = False
@@ -119,23 +122,30 @@ class MenuNavigator:
         text = item.label
         if item.value_text():
             text += f". Current value: {item.value_text()}"
-        # The menu name is required on entry, but repeating it on every
-        # focus change makes rapid tactile navigation unnecessarily verbose.
-        required_text = f"{self.title}. {text}" if not self._entered else text
-        instruction_text = " ".join(self.instructions) if include_instructions else ""
-        return (SpeechRequest(
-            required_text,
-            interrupt=True,
-            category=SpeechCategory.CONTEXT,
-            instruction_text=instruction_text,
-        ),)
+        if include_instructions:
+            requests = list(self.instruction_speech())
+            requests.append(SpeechRequest(
+                text,
+                category=SpeechCategory.OPTION,
+                message_id=f"menu.option.{item.key}",
+                message_type=SpeechMessageType.MENU_OPTION,
+                play_after_instructions=True,
+            ))
+            return tuple(requests)
+        requests = [SpeechRequest(
+            text,
+            category=SpeechCategory.OPTION,
+            message_id=f"menu.option.{item.key}",
+            message_type=SpeechMessageType.MENU_OPTION,
+        )]
+        return tuple(requests)
 
     def instruction_speech(self):
         return (SpeechRequest(
-            "Menu instructions.",
-            interrupt=True,
+            " ".join(self.instructions),
             category=SpeechCategory.INSTRUCTION,
-            instruction_text=" ".join(self.instructions),
+            message_id=self.instruction_id,
+            message_type=SpeechMessageType.INSTRUCTION,
         ),)
 
     @staticmethod
