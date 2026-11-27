@@ -10,6 +10,9 @@ import sys
 
 SAMPLE_RATE = 24_000
 KOKORO_VERSION = "0.9.4"
+AUDIO_PROCESSING_VERSION = "trim-silence-v1"
+TRIM_THRESHOLD = 0.01
+TRIM_PADDING_SAMPLES = int(SAMPLE_RATE * 0.015)
 _SAFE_ID = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.-]*$")
 
 
@@ -76,7 +79,19 @@ def generate_phrase(pipeline, text, voice, speed):
             chunks.append(np.asarray(audio))
     if not chunks:
         raise RuntimeError(f"Kokoro produced no audio for {text!r}")
-    return np.concatenate(chunks)
+    return trim_silence(np.concatenate(chunks))
+
+
+def trim_silence(audio):
+    """Remove Kokoro's long boundary pauses while preserving a short buffer."""
+    import numpy as np
+
+    active = np.flatnonzero(np.abs(audio) >= TRIM_THRESHOLD)
+    if active.size == 0:
+        return audio
+    start = max(0, int(active[0]) - TRIM_PADDING_SAMPLES)
+    end = min(len(audio), int(active[-1]) + 1 + TRIM_PADDING_SAMPLES)
+    return audio[start:end]
 
 
 def main():
@@ -115,7 +130,13 @@ def main():
         destination = output_dir / filename
         fingerprint = hashlib.sha256(
             json.dumps(
-                {"text": text, "language": language, "voice": voice, "speed": speed},
+                {
+                    "text": text,
+                    "language": language,
+                    "voice": voice,
+                    "speed": speed,
+                    "audio_processing": AUDIO_PROCESSING_VERSION,
+                },
                 sort_keys=True,
             ).encode("utf-8")
         ).hexdigest()

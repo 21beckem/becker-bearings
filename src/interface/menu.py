@@ -18,12 +18,19 @@ class MenuItem:
     value_provider: object = None
     select: object = None
     tactile_state: TactileState = TactileState.OFF
+    audio_parts_provider: object = None
 
     def value_text(self):
         if self.value_provider is None:
             return ""
         value = self.value_provider() if callable(self.value_provider) else self.value_provider
         return "" if value in (None, "") else str(value)
+
+    def audio_parts(self):
+        if self.audio_parts_provider is None:
+            return ()
+        parts = self.audio_parts_provider()
+        return tuple(parts or ())
 
 
 @dataclass(frozen=True)
@@ -130,6 +137,7 @@ class MenuNavigator:
                 message_id=f"menu.option.{item.key}",
                 message_type=SpeechMessageType.MENU_OPTION,
                 play_after_instructions=True,
+                audio_parts=item.audio_parts(),
             ))
             return tuple(requests)
         requests = [SpeechRequest(
@@ -137,6 +145,7 @@ class MenuNavigator:
             category=SpeechCategory.OPTION,
             message_id=f"menu.option.{item.key}",
             message_type=SpeechMessageType.MENU_OPTION,
+            audio_parts=item.audio_parts(),
         )]
         return tuple(requests)
 

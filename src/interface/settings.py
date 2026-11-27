@@ -15,6 +15,7 @@ SYSTEM_SETTINGS = (
         description="Speak navigation instructions when entering menus.",
         choices=(False, True),
         choice_labels=("off", "on"),
+        label_audio_key="settings.label.menu_instructions",
     ),
 )
 

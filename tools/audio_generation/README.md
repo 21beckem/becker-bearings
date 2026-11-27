@@ -13,7 +13,9 @@ The generator reads [`catalog.json`](catalog.json) and writes one WAV file per
 phrase plus a `manifest.json`. By default, output goes to
 `src/assets/audio/`, which is the eventual runtime asset location.
 
-The generated files are 24 kHz, mono, 16-bit PCM WAV files. They are intended
+The generated files are 24 kHz, mono, 16-bit PCM WAV files. Boundary silence
+is trimmed automatically while preserving a short natural buffer, so composed
+settings parts can play together without long pauses. The files are intended
 to be preloaded and played immediately by the live audio service later.
 
 ## One-time setup on a new Windows computer

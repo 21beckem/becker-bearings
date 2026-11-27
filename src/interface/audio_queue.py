@@ -2,7 +2,7 @@
 
 from dataclasses import dataclass
 
-from .contracts import SpeechCategory, SpeechMessageType, SpeechRequest
+from .contracts import SpeechCategory, SpeechMessageType, SpeechPart, SpeechRequest
 
 
 _PRIORITY = {
@@ -22,6 +22,7 @@ class AudioMessage:
     error_key: str = ""
     clip_id: str = ""
     play_after_instructions: bool = False
+    audio_parts: tuple[SpeechPart, ...] = ()
     sequence: int = 0
 
     @property
@@ -42,6 +43,7 @@ class AudioMessage:
                 request.error_key,
                 request.clip_id,
                 request.play_after_instructions,
+                request.audio_parts,
                 sequence,
             )
         raise TypeError("audio queue requires a SpeechRequest")

@@ -180,6 +180,7 @@ class LensController:
                 lens_id=request.lens_id or self._active.manifest.lens_id,
                 error_key=request.error_key,
                 play_after_instructions=request.play_after_instructions,
+                audio_parts=request.audio_parts,
             )
         self.last_output = output
         return output
@@ -194,9 +195,9 @@ class LensController:
         self._quick_menu = MenuNavigator(
             "Quick menu",
             (
-                MenuItem("close", "Close menu", "Return to the current lens."),
                 MenuItem("main_menu", "Main Menu", "Open the main menu."),
                 MenuItem("lens_settings", "Lens settings", "Edit settings for the current lens."),
+                MenuItem("close", "Close menu", "Return to the current lens."),
             ),
             instructions=(
                 "Move the joystick to slide through quick menu options.",

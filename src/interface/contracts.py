@@ -63,6 +63,14 @@ class SpeechMessageType(str, Enum):
 
 
 @dataclass(frozen=True)
+class SpeechPart:
+    """One contiguous audio segment inside a composite spoken message."""
+
+    text: str
+    clip_id: str = ""
+
+
+@dataclass(frozen=True)
 class SpeechRequest:
     text: str
     category: SpeechCategory = SpeechCategory.CONTENT
@@ -72,6 +80,7 @@ class SpeechRequest:
     lens_id: str = ""
     error_key: str = ""
     play_after_instructions: bool = False
+    audio_parts: tuple[SpeechPart, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -97,6 +106,7 @@ class SettingSpec:
     maximum: float | None = None
     step: float | None = None
     choice_labels: tuple[str, ...] = ()
+    label_audio_key: str = ""
 
 
 @dataclass(frozen=True)

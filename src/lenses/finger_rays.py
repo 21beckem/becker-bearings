@@ -21,6 +21,7 @@ class FingerRaysLens(Lens):
                 value_type="bool",
                 default=False,
                 description="Put close objects at the fingertip and far objects at the base.",
+                label_audio_key="settings.label.reverse_distance_mapping",
             ),
             SettingSpec(
                 key="include_palm",
@@ -28,6 +29,7 @@ class FingerRaysLens(Lens):
                 value_type="bool",
                 default=False,
                 description="Use the two palm points for five distance levels instead of three.",
+                label_audio_key="settings.label.include_palm",
             ),
             SettingSpec(
                 key="ray_length_m",
@@ -37,6 +39,7 @@ class FingerRaysLens(Lens):
                 description="Maximum distance represented by each sector.",
                 minimum=0.5,
                 maximum=3.0,
+                label_audio_key="settings.label.ray_length_m",
             ),
         ),
     )

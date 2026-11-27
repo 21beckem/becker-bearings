@@ -5,7 +5,7 @@ from pathlib import Path
 from threading import Event, Lock, Thread
 
 from .audio_queue import AudioQueue
-from .contracts import SpeechCategory, SpeechRequest
+from .contracts import SpeechCategory, SpeechPart, SpeechRequest
 from .debug import debug
 
 try:
@@ -332,7 +332,7 @@ class AudioService:
     def speak(self, text, interrupt=False, priority=0,
               category=SpeechCategory.CONTENT, clip_id="", message_id="",
               message_type=None, lens_id="", error_key="",
-              play_after_instructions=False):
+              play_after_instructions=False, audio_parts=()):
         if isinstance(text, SpeechRequest):
             request = text
         else:
@@ -347,6 +347,7 @@ class AudioService:
                 lens_id=lens_id,
                 error_key=error_key,
                 play_after_instructions=play_after_instructions,
+                audio_parts=audio_parts,
             )
         if not request.text:
             return
@@ -374,14 +375,17 @@ class AudioService:
             debug("audio_worker_dequeue text=%r type=%s id=%s",
                   message.text, message.message_type, message.message_id)
             try:
-                clip_id = message.clip_id or getattr(
-                    self.clip_player, "clip_for_text", lambda _: None
-                )(message.text)
-                if (clip_id and self.clip_player is not None and
-                        self.clip_player.play_clip(clip_id, False)):
-                    pass
-                else:
-                    self.backend.speak(message.text, interrupt=False)
+                parts = message.audio_parts or (
+                    SpeechPart(message.text, message.clip_id),
+                )
+                for part in parts:
+                    clip_id = part.clip_id or getattr(
+                        self.clip_player, "clip_for_text", lambda _: None
+                    )(part.text)
+                    if (clip_id and self.clip_player is not None and
+                            self.clip_player.play_clip(clip_id, False)):
+                        continue
+                    self.backend.speak(part.text, interrupt=False)
                 debug("audio_worker_backend_return text=%r", message.text)
             except Exception as error:
                 # Speech must never stop the lens or compute loops, but the

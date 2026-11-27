@@ -74,6 +74,20 @@ Dynamic text, including current values and error details, continues to use
 runtime TTS for now. Dynamic TTS requests still follow the same complete
 message contract and queue policy.
 
+Settings are the one deliberate exception to the complete-clip rule. A
+settings `MenuOption` may contain an atomic sequence of reusable audio parts,
+for example:
+
+```text
+settings.label.menu_instructions
+settings.current_value
+settings.value.on
+```
+
+The queue treats that sequence as one message for interruption and replacement
+purposes. Fixed labels and common finite values use generated clips; dynamic
+values such as numbers use TTS for only that part.
+
 ## Priority and interruption
 
 | Type | Priority | Interrupts current playback? | Queued-message behavior |

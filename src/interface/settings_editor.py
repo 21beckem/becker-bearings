@@ -4,9 +4,33 @@ from dataclasses import dataclass
 
 from .contracts import (
     Lens, LensManifest, LensOutput, SettingSpec, SpeechCategory,
-    SpeechMessageType, SpeechRequest,
+    SpeechMessageType, SpeechPart, SpeechRequest,
 )
 from .menu import MenuItem, MenuNavigator
+
+
+_VALUE_AUDIO_KEYS = {
+    "on": "settings.value.on",
+    "off": "settings.value.off",
+    "true": "settings.value.true",
+    "false": "settings.value.false",
+}
+
+
+def _value_audio_part(spec, value):
+    spoken = SettingsEditor._format(spec, value)
+    normalized = spoken.rstrip(".").lower()
+    clip_id = _VALUE_AUDIO_KEYS.get(normalized, "")
+    text = spoken if spoken.endswith(".") else f"{spoken}."
+    return SpeechPart(text, clip_id)
+
+
+def _setting_audio_parts(spec, value, include_current=True):
+    parts = [SpeechPart(spec.label, spec.label_audio_key)]
+    if include_current:
+        parts.append(SpeechPart("Current value", "settings.current_value"))
+    parts.append(_value_audio_part(spec, value))
+    return tuple(parts)
 
 
 @dataclass
@@ -39,6 +63,9 @@ class SettingsEditor:
                 spec.key, spec.label, spec.description,
                 value_provider=lambda spec=spec: self._format(spec, self.transaction.get(spec.key)),
                 select=lambda spec=spec: self._open_value(spec),
+                audio_parts_provider=lambda spec=spec: _setting_audio_parts(
+                    spec, self.transaction.get(spec.key)
+                ),
             ))
         items.append(MenuItem(
             "reset_defaults", "Reset all settings to defaults",
@@ -90,8 +117,14 @@ class SettingsEditor:
             labels = spec.choice_labels or tuple(self._format(spec, value) for value in values)
             self.value_menu = MenuNavigator(
                 spec.label,
-                [MenuItem(str(value), label, value_provider=lambda value=value: self._format(spec, value),
-                          select=lambda value=value: self._choose_value(value))
+                [MenuItem(
+                    str(value), label,
+                    value_provider=lambda value=value: self._format(spec, value),
+                    select=lambda value=value: self._choose_value(value),
+                    audio_parts_provider=lambda value=value: _setting_audio_parts(
+                        spec, value
+                    ),
+                )
                  for value, label in zip(values, labels)],
                 instructions=("Move the joystick to choose a value.", "Press the button to accept."),
                 instruction_id="settings.value.instructions",
@@ -109,6 +142,11 @@ class SettingsEditor:
             category=SpeechCategory.CHANGE,
             message_id=f"settings.{self.active_spec.key}.accepted",
             message_type=SpeechMessageType.MENU_OPTION,
+            audio_parts=(
+                SpeechPart(self.active_spec.label, self.active_spec.label_audio_key),
+                _value_audio_part(self.active_spec, value),
+                SpeechPart("accepted.", "settings.accepted"),
+            ),
         ),)
         self.state = self.LIST
         self.menu._announce = True
@@ -139,6 +177,10 @@ class SettingsEditor:
                 category=SpeechCategory.CHANGE,
                 message_id=f"settings.{spec.key}.changed",
                 message_type=SpeechMessageType.MENU_OPTION,
+                audio_parts=(
+                    SpeechPart(spec.label, spec.label_audio_key),
+                    _value_audio_part(spec, value),
+                ),
             ),)
         else:
             speech = ()

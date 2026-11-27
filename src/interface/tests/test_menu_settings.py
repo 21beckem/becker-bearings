@@ -143,6 +143,24 @@ class MenuSettingsTests(unittest.TestCase):
         editor.update(None, HandInputState(button_pressed=True, timestamp_s=6.0))
         self.assertTrue(registry.get("test", "enabled"))
 
+    def test_settings_menu_option_uses_reusable_audio_parts(self):
+        registry = SettingsRegistry()
+        registry.register_scope("test", (
+            SettingSpec(
+                "enabled", "Enabled", "bool", True,
+                choices=(False, True), choice_labels=("off", "on"),
+                label_audio_key="settings.label.enabled",
+            ),
+        ))
+        editor = SettingsEditor(SettingsTarget("test", "Test Settings", registry))
+
+        output = editor.update(None, HandInputState())
+        option = output.speech[-1]
+        self.assertEqual(
+            [part.clip_id for part in option.audio_parts],
+            ["settings.label.enabled", "settings.current_value", "settings.value.on"],
+        )
+
     def test_system_settings_persist(self):
         path = Path.cwd() / f".test-settings-{uuid4().hex}.json"
         try:
